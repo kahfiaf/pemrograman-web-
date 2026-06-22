@@ -1,0 +1,6 @@
+const htmlContent = `
+<html>
+<head>
+<title>Laporan Komprehensif - ${mainE.name || 'Platform'} | Insight Platform</title>
+<style>
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif

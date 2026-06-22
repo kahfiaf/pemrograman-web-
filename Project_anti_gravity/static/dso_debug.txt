@@ -1,0 +1,3 @@
+window.dsoDownloadEntry = function(idx) {
+    const entries = (typeof currentUser !== 'undefined' && currentUser && currentUser.dataEntries) ? currentUser.dataEntries : [];
+    let mainE = entries[idx] || entries[0] || {};

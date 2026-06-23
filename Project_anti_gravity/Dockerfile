@@ -29,9 +29,10 @@ RUN pip install --no-cache /wheels/* \
 
 # Copy source code dan ubah kepemilikan ke user django
 COPY . .
+RUN chmod +x entrypoint.sh
 RUN chown -R django:django /app
 
 USER django
 
 EXPOSE 8000
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-", "insight_core.wsgi:application"]
+CMD ["./entrypoint.sh"]

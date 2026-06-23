@@ -129,7 +129,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 CORS_ALLOW_ALL_ORIGINS = True
 
 import os
-MEDIA_URL = '/media/'
+MEDIA_URL = '/implementation/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -138,12 +138,12 @@ CSRF_COOKIE_SECURE = True
 
 # === KONFIGURASI STATIC & MEDIA (Untuk Nginx) ===
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
+STATIC_URL = '/implementation/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (Uploads)
-MEDIA_URL = '/media/'
+MEDIA_URL = '/implementation/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -151,3 +151,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
+
+FORCE_SCRIPT_NAME = '/implementation'

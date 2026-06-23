@@ -2585,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (entry.pdfUrl) {
-            window.open((window.API_BASE || '').replace('/api', '') + entry.pdfUrl, '_blank');
+            window.open(entry.pdfUrl, '_blank');
         } else if (entry.fileDataUrl) {
             openWith(entry.fileDataUrl);
         } else if (entry._idbKey) {
@@ -2615,8 +2615,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="dso-modal-grid">
                 ${(entry.pdfUrl || entry.fileDataUrl) ? (
                     (entry.hasImage || (entry.fileType && entry.fileType.includes('image'))) ? 
-                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
-                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
+                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
+                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
                 ) : 'Preview tidak tersedia'}
                 <div class="dso-modal-rows">
                     ${[
@@ -5988,7 +5988,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function getDataUrlFromEntry(ent) {
     if (ent.pdfUrl) {
         try {
-            const url = (window.API_BASE || '').replace('/api', '') + ent.pdfUrl;
+            const url = ent.pdfUrl;
             const res = await fetch(url);
             const blob = await res.blob();
             return await new Promise((resolve) => {

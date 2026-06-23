@@ -4478,7 +4478,7 @@ window.closeFixModal = function() {
 };
 
 // Django API Integration
-window.API_BASE = '/api-content';
+window.API_BASE = '/implementation/api-content';
 window.apiSyncEntries = async function() {
     try {
         const emailParam = (currentUser && currentUser.email) ? ('?email=' + encodeURIComponent(currentUser.email)) : '';
@@ -5504,7 +5504,7 @@ window.mnSendToIC = async function(idx) {
 
     try {
         // Step 1: Simpan issue ke backend kita
-        const createResp = await fetch('/api-content/maintenance-issues/', {
+        const createResp = await fetch(window.API_BASE + '/maintenance-issues/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _getCSRF() },
             body: JSON.stringify({

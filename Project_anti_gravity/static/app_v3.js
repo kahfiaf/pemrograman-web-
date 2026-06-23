@@ -4069,6 +4069,35 @@ window.renderAlerts = function() {
                 ]
             });
         }
+
+        // Environment Dashboard Issues (Connected to Environment Stat)
+        const isEnvResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('env-' + seed);
+        let getSeededRand = function(s, mn, mx) { let x = Math.sin(s * 9301 + 49297) * 233280; return mn + (x - Math.floor(x)) * (mx - mn); };
+        let envStatusVal = getSeededRand(seed, 0, 100);
+        if (!isEnvResolved && envStatusVal > 60) {
+            let cpu = Math.floor(getSeededRand(seed+2, 10, 95));
+            let ram = Math.floor(getSeededRand(seed+3, 20, 90));
+            if (envStatusVal > 85) { cpu = Math.max(cpu, 85); ram = Math.max(ram, 85); }
+            
+            const isCritical = envStatusVal > 85;
+            currentAlerts.push({
+                id: 'env-' + seed,
+                dataset: name,
+                type: 'Environment',
+                title: 'Server Resource ' + (isCritical ? 'Critical' : 'Warning'),
+                severity: isCritical ? 'CRITICAL' : 'HIGH',
+                desc: `Environment server for ${name} is in ${isCritical ? 'CRITICAL' : 'WARNING'} state with high resource usage.`,
+                timeAgo: Math.floor(seededRand(seed * 41, 1, 60)) + ' mins ago',
+                records: 'N/A',
+                note: `Check server health and running pipelines for ${name}. Investigate the active processes consuming resources.`,
+                breakdown: [
+                    `<li>Affected Service: <strong>${name} Pipeline</strong></li>`,
+                    `<li>CPU Usage: <strong><span style="color:${cpu > 85 ? '#ef4444' : '#fbbf24'}">${cpu}%</span></strong></li>`,
+                    `<li>RAM Usage: <strong><span style="color:${ram > 85 ? '#ef4444' : '#fbbf24'}">${ram}%</span></strong></li>`,
+                    `<li>Recommended Action: <a href="#" onclick="window.openEnvMonitoring('${seed}'); return false;" style="color:#60a5fa;text-decoration:underline;">Open Live Monitoring</a></li>`
+                ]
+            });
+        }
     });
     
     // Sort critical first, then high
@@ -4080,12 +4109,14 @@ window.renderAlerts = function() {
     const highCount = currentAlerts.filter(a => a.severity === 'HIGH').length;
     const dqCount = currentAlerts.filter(a => a.type === 'Data Quality').length;
     const plCount = currentAlerts.filter(a => a.type === 'Pipeline').length;
+    const envCount = currentAlerts.filter(a => a.type === 'Environment').length;
     
     const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     setEl('alerts-stat-critical', criticalCount);
     setEl('alerts-stat-high', highCount);
     setEl('alerts-stat-dq', dqCount);
     setEl('alerts-stat-pipeline', plCount);
+    setEl('alerts-stat-env', envCount);
 
     updateAlertList();
 };

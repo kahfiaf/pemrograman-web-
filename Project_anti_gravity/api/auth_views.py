@@ -69,3 +69,9 @@ def change_password(request):
     update_session_auth_hash(request, request.user)
     
     return Response({'message': 'Password changed successfully'})
+@api_view(['GET'])
+def list_users(request):
+    users = User.objects.all()
+    data = [{'username': u.first_name or u.username, 'email': u.email, 'date_joined': u.date_joined.isoformat()} for u in users]
+    return Response(data)
+

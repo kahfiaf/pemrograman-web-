@@ -19,7 +19,7 @@ router.register(r'notes',                MaintainerNoteViewSet)
 router.register(r'maintenance-issues',   MaintenanceIssueViewSet)
 router.register(r'pdfs',                 PdfDocumentViewSet, basename='pdfdocument')
 
-from .auth_views import register_user, login_user, logout_user, change_password
+from .auth_views import register_user, login_user, logout_user, change_password, list_users
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -28,4 +28,5 @@ urlpatterns = [
     path('login/', login_user, name='login_user'),
     path('logout/', logout_user, name='logout_user'),
     path('change-password/', change_password, name='change_password'),
+    path('users/', list_users, name='list_users'),
 ]

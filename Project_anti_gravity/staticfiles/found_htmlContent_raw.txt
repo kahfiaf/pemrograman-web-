@@ -1,0 +1,8 @@
+`<!DOCTYPE html>
+2562: <html lang="id">
+2563: <head>
+2564: <meta charset="UTF-8">
+2565: <title>Laporan Komprehensif - ${pipelineName} | insight Platform</title>
+2566: <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+2567: <style>
+2568:   *,*::before,*::after{box-sizing:border-box

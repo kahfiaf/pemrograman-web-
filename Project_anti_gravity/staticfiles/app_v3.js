@@ -623,34 +623,11 @@ function getInitials(name) {
 }
 
 // Dashboard Search and Rendering logic
-async function renderDashboardList(searchQuery = '') {
+function renderDashboardList(searchQuery = '') {
     const listContainer = document.getElementById('members-list');
     const totalUsersCount = document.getElementById('total-users-count');
     const users2026Count = document.getElementById('users-2026-count');
     const userFooterNotice = document.getElementById('user-footer-notice');
-    
-    try {
-        const res = await fetch((window.API_BASE || '/api') + '/users/');
-        if (res.ok) {
-            const apiUsers = await res.json();
-            const newUsers = apiUsers.map(u => {
-                const d = new Date(u.date_joined);
-                return {
-                    username: u.username,
-                    email: u.email,
-                    regDate: d.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}),
-                    regYear: d.getFullYear(),
-                    timestamp: d.getTime()
-                };
-            });
-            // Merge or overwrite users. For simplicity, if API is working, we use API users
-            if (newUsers.length > 0) {
-                users = newUsers;
-            }
-        }
-    } catch (e) {
-        console.warn('Failed to fetch users from API, falling back to local storage', e);
-    }
     
     // Sort users chronologically (oldest registration first)
     const sortedUsers = [...users].sort((a, b) => a.timestamp - b.timestamp);
@@ -2608,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (entry.pdfUrl) {
-            window.open(entry.pdfUrl, '_blank');
+            window.open((window.API_BASE || '').replace('/api', '') + entry.pdfUrl, '_blank');
         } else if (entry.fileDataUrl) {
             openWith(entry.fileDataUrl);
         } else if (entry._idbKey) {
@@ -2638,8 +2615,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="dso-modal-grid">
                 ${(entry.pdfUrl || entry.fileDataUrl) ? (
                     (entry.hasImage || (entry.fileType && entry.fileType.includes('image'))) ? 
-                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
-                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
+                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
+                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
                 ) : 'Preview tidak tersedia'}
                 <div class="dso-modal-rows">
                     ${[
@@ -4501,7 +4478,7 @@ window.closeFixModal = function() {
 };
 
 // Django API Integration
-window.API_BASE = '/implementation/api-content';
+window.API_BASE = '/api-content';
 window.apiSyncEntries = async function() {
     try {
         const emailParam = (currentUser && currentUser.email) ? ('?email=' + encodeURIComponent(currentUser.email)) : '';
@@ -5527,7 +5504,7 @@ window.mnSendToIC = async function(idx) {
 
     try {
         // Step 1: Simpan issue ke backend kita
-        const createResp = await fetch(window.API_BASE + '/maintenance-issues/', {
+        const createResp = await fetch('/api-content/maintenance-issues/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _getCSRF() },
             body: JSON.stringify({
@@ -6011,7 +5988,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function getDataUrlFromEntry(ent) {
     if (ent.pdfUrl) {
         try {
-            const url = ent.pdfUrl;
+            const url = (window.API_BASE || '').replace('/api', '') + ent.pdfUrl;
             const res = await fetch(url);
             const blob = await res.blob();
             return await new Promise((resolve) => {

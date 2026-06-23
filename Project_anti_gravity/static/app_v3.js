@@ -8021,7 +8021,7 @@ window.renderPdfStorageCards = async function() {
                     </span>
                 </div>
                 <div class="pdf-card-actions">
-                    <button class="pdf-btn pdf-btn-sent" onclick="sendPdfToIC('${pdf.title}', ${pdf.id})" title="Send to IC Team">
+                    <button class="pdf-btn pdf-btn-sent" onclick="submitToIntRing('${pdf.title}', ${pdf.id})" title="Submit to IntRing PM">
                         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
                     <button class="pdf-btn pdf-btn-download" onclick="downloadPdfStorage('${pdf.title}', ${pdf.id})" title="Download">
@@ -8214,26 +8214,44 @@ window.downloadPdfStorage = function(filename, id) {
     );
 };
 
-window.sendPdfToIC = function(filename, id) {
+window.submitToIntRing = function(filename, id) {
     const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width: 20px; height: 20px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
     const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
     window.showPdfActionModal(
-        "Send to Intelligence Creation",
-        "Transmit this document to the IC team via API.",
+        "Submit to IntRing PM",
+        "Transmit this document to the main IntRing PM web via API.",
         fileIcon, "File to be sent", filename,
-        `Are you sure you want to send "${filename}"? The IC team will receive this immediately.`,
-        "Send File", ['#10b981', '#059669'], '#10b981', mainIcon,
+        `Are you sure you want to submit "${filename}" as an Implementation Deliverable?`,
+        "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
         async function() {
-            // Simulated API upload with the actual Blob
             try {
+                if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
+                
                 const blob = await window.getPdfBlobFromDB(id);
-                // Simulate network delay
-                setTimeout(() => {
-                    alert(`File '${filename}' (${(blob.size/1024/1024).toFixed(1)}MB) was successfully sent to the IC team via API!`);
-                    if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to Intelligence Creation via API.", "success");
-                }, 800);
+                
+                let formData = new FormData();
+                // "1" is the hardcoded project ID for the demo based on the user's IntRing PM
+                formData.append("project_id", 1); 
+                formData.append("phase", "Implementation");
+                formData.append("file", blob, filename);
+
+                const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errObj = await response.json().catch(()=>({}));
+                    throw new Error(errObj.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                alert(`File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`);
+                if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
             } catch (e) {
-                alert("Failed to send: " + e.message);
+                alert("Failed to submit: " + e.message);
+                if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }
         }
     );

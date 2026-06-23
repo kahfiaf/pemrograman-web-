@@ -30,6 +30,7 @@ RUN pip install --no-cache /wheels/* \
 # Copy source code dan ubah kepemilikan ke user django
 COPY . .
 RUN chmod +x entrypoint.sh
+RUN mkdir -p /app/staticfiles /app/mediafiles
 RUN chown -R django:django /app
 
 USER django

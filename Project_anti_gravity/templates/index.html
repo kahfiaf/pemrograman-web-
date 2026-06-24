@@ -2928,6 +2928,25 @@
         </div>
     </div>
 
+    <!-- API Response Modal -->
+    <div class="dso-modal-overlay" id="api-response-modal-overlay" style="display:none; z-index:99999;">
+        <div class="dso-modal" style="max-width: 500px;">
+            <div class="dso-modal-header">
+                <h3 id="api-response-modal-title">API Response</h3>
+                <button class="dso-modal-close" onclick="document.getElementById('api-response-modal-overlay').style.display='none'">&times;</button>
+            </div>
+            <div class="dso-modal-body">
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div id="api-response-icon-container" style="margin:0 auto 1rem auto; display:block;">
+                    </div>
+                    <h4 id="api-response-heading" style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;"></h4>
+                    <p id="api-response-message" style="color: #94a3b8; line-height: 1.5;"></p>
+                    <button class="mt-btn mt-btn-outline" style="margin-top: 1.5rem;" onclick="document.getElementById('api-response-modal-overlay').style.display='none'">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -3090,7 +3109,7 @@
         </div>
     </div>
 
-    <script src="{% static 'app_v3.js' %}?v=28"></script>
+    <script src="{% static 'app_v3.js' %}?v=29"></script>
 </body>
 
 

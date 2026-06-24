@@ -8227,6 +8227,25 @@ window.downloadPdfStorage = function(filename, id) {
     );
 };
 
+window.showApiResponseModal = function(heading, message, isError) {
+    const overlay = document.getElementById('api-response-modal-overlay');
+    if (!overlay) return;
+    
+    document.getElementById('api-response-heading').textContent = heading;
+    document.getElementById('api-response-message').textContent = message;
+    
+    const iconContainer = document.getElementById('api-response-icon-container');
+    if (isError) {
+        document.getElementById('api-response-heading').style.color = '#ef4444';
+        iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    } else {
+        document.getElementById('api-response-heading').style.color = '#34d399';
+        iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 10 0 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    }
+    
+    overlay.style.display = 'flex';
+};
+
 window.submitToIntRing = function(filename, id) {
     const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width: 20px; height: 20px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
     const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
@@ -8260,10 +8279,10 @@ window.submitToIntRing = function(filename, id) {
                 
                 const data = await response.json();
 
-                alert(`File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`);
+                window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
                 if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
             } catch (e) {
-                alert("Failed to submit: " + e.message);
+                window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
                 if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }
         }

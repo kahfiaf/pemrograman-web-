@@ -8369,7 +8369,83 @@ window.submitToIntRing = function(filename, id) {
                 if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
                 
                 const blob = await window.getPdfBlobFromDB(id);
-                let projectId = prompt("Masukkan ID Proyek dari IntRing PM (Contoh: 1, 2, atau 3):", "1");
+                let projectId = await new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    Object.assign(overlay.style, {
+                        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', zIndex: '99999', backdropFilter: 'blur(3px)'
+                    });
+
+                    const modal = document.createElement('div');
+                    Object.assign(modal.style, {
+                        backgroundColor: '#1E1E2D', padding: '24px', borderRadius: '12px',
+                        width: '400px', maxWidth: '90%', boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: 'Inter, sans-serif'
+                    });
+
+                    const title = document.createElement('h3');
+                    title.innerText = 'Kirim ke IntRing PM';
+                    title.style.margin = '0 0 10px 0';
+                    title.style.fontSize = '18px';
+
+                    const desc = document.createElement('p');
+                    desc.innerText = 'Masukkan ID Proyek tujuan:';
+                    desc.style.margin = '0 0 20px 0';
+                    desc.style.color = '#A0A0B5';
+                    desc.style.fontSize = '14px';
+
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.value = '1';
+                    Object.assign(input.style, {
+                        width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3F3F5A',
+                        backgroundColor: '#151521', color: '#fff', marginBottom: '20px', boxSizing: 'border-box',
+                        fontSize: '15px'
+                    });
+
+                    const btnContainer = document.createElement('div');
+                    btnContainer.style.display = 'flex';
+                    btnContainer.style.justifyContent = 'flex-end';
+                    btnContainer.style.gap = '12px';
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.innerText = 'Batal';
+                    Object.assign(cancelBtn.style, {
+                        padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent',
+                        color: '#A0A0B5', cursor: 'pointer', fontWeight: '500', transition: '0.2s'
+                    });
+                    cancelBtn.onmouseover = () => cancelBtn.style.color = '#fff';
+                    cancelBtn.onmouseout = () => cancelBtn.style.color = '#A0A0B5';
+
+                    const submitBtn = document.createElement('button');
+                    submitBtn.innerText = 'Kirim';
+                    Object.assign(submitBtn.style, {
+                        padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#3699FF',
+                        color: '#fff', cursor: 'pointer', fontWeight: '600', transition: '0.2s'
+                    });
+                    submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#187DE4';
+                    submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#3699FF';
+
+                    btnContainer.append(cancelBtn, submitBtn);
+                    modal.append(title, desc, input, btnContainer);
+                    overlay.append(modal);
+                    document.body.append(overlay);
+
+                    setTimeout(() => input.focus(), 100);
+
+                    const close = (val) => {
+                        document.body.removeChild(overlay);
+                        resolve(val);
+                    };
+
+                    cancelBtn.onclick = () => close(null);
+                    submitBtn.onclick = () => close(input.value);
+                    input.onkeydown = (e) => {
+                        if (e.key === 'Enter') close(input.value);
+                        if (e.key === 'Escape') close(null);
+                    };
+                });
                 if (!projectId) {
                     if(window.addNotification) window.addNotification("Dibatalkan", "Pengiriman dibatalkan karena ID Proyek kosong.", "warning");
                     return;

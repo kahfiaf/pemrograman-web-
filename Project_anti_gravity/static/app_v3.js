@@ -4174,9 +4174,9 @@ function updateAlertList() {
                     </div>
                 </div>
                 <div class="alert-actions">
-                    <button class="alert-btn alert-btn-outline" onclick="window.viewAlertDetails('${alert.id}')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        View Details
+                    <button class="alert-btn alert-btn-outline" onclick="window.sendIssueToIC('${alert.id}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        Send Issue
                     </button>
                     <button class="alert-btn alert-btn-analyze" onclick="window.analyzeAlert('${alert.id}')">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2zM21 9v6h-2v-6h2z"/></svg>
@@ -4436,6 +4436,15 @@ window.analyzeAlert = function(id) {
 
 window.closeAnalyzeModal = function() {
     document.getElementById('alerts-analyze-modal').classList.remove('active');
+};
+
+window.sendIssueToIC = function(id) {
+    const alert = currentAlerts.find(a => a.id === id);
+    if (!alert) return;
+    const overlay = document.getElementById('ic-send-modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+    }
 };
 
 window.viewAlertDetails = function(id) {

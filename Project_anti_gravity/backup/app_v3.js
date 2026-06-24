@@ -8408,31 +8408,9 @@ window.submitToIntRing = function(filename, id) {
                 
                 const data = await response.json();
 
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Success',
-                        details: `File: ${filename}, Project ID: ${projectId}, Response ID: ${data.submission_id}`
-                    })
-                }).catch(e => console.error("Log error", e));
-
                 window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
                 if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
             } catch (e) {
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Failed',
-                        details: `File: ${filename}, Project ID: ${projectId}, Error: ${e.message}`
-                    })
-                }).catch(err => console.error("Log error", err));
-
                 window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
                 if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }

@@ -4,7 +4,7 @@ from .views import (
     DatasetViewSet, PerformanceMetricViewSet, AlertViewSet,
     ImplementationActivityViewSet, ModelTransactionViewSet,
     EnvironmentStatViewSet, MaintainerNoteViewSet, MaintenanceIssueViewSet,
-    PdfDocumentViewSet,
+    PdfDocumentViewSet, IntegrationLogViewSet,
     download_dataset_csv
 )
 
@@ -18,6 +18,7 @@ router.register(r'environment',          EnvironmentStatViewSet)
 router.register(r'notes',                MaintainerNoteViewSet)
 router.register(r'maintenance-issues',   MaintenanceIssueViewSet)
 router.register(r'pdfs',                 PdfDocumentViewSet, basename='pdfdocument')
+router.register(r'integration-logs',     IntegrationLogViewSet, basename='integrationlog')
 
 from .auth_views import register_user, login_user, logout_user, change_password, list_users
 

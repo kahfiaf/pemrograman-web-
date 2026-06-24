@@ -142,3 +142,16 @@ class PdfDocument(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.category})"
+
+class IntegrationLog(models.Model):
+    action_type = models.CharField(max_length=255)
+    target_system = models.CharField(max_length=255)
+    status = models.CharField(max_length=50)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.status}] {self.action_type} to {self.target_system}"

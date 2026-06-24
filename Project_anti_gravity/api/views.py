@@ -116,6 +116,13 @@ class PdfDocumentViewSet(viewsets.ModelViewSet):
         email = self.request.data.get('user_email', '')
         serializer.save(user_email=email)
 
+from .models import IntegrationLog
+from .serializers import IntegrationLogSerializer
+
+class IntegrationLogViewSet(viewsets.ModelViewSet):
+    queryset = IntegrationLog.objects.all()
+    serializer_class = IntegrationLogSerializer
+
     @action(detail=True, methods=['post'])
     def send_to_ic(self, request, pk=None):
         """

@@ -53,3 +53,9 @@ class PdfDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PdfDocument
         fields = '__all__'
+
+from .models import IntegrationLog
+class IntegrationLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IntegrationLog
+        fields = '__all__'

@@ -623,34 +623,11 @@ function getInitials(name) {
 }
 
 // Dashboard Search and Rendering logic
-async function renderDashboardList(searchQuery = '') {
+function renderDashboardList(searchQuery = '') {
     const listContainer = document.getElementById('members-list');
     const totalUsersCount = document.getElementById('total-users-count');
     const users2026Count = document.getElementById('users-2026-count');
     const userFooterNotice = document.getElementById('user-footer-notice');
-    
-    try {
-        const res = await fetch((window.API_BASE || '/api') + '/users/');
-        if (res.ok) {
-            const apiUsers = await res.json();
-            const newUsers = apiUsers.map(u => {
-                const d = new Date(u.date_joined);
-                return {
-                    username: u.username,
-                    email: u.email,
-                    regDate: d.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}),
-                    regYear: d.getFullYear(),
-                    timestamp: d.getTime()
-                };
-            });
-            // Merge or overwrite users. For simplicity, if API is working, we use API users
-            if (newUsers.length > 0) {
-                users = newUsers;
-            }
-        }
-    } catch (e) {
-        console.warn('Failed to fetch users from API, falling back to local storage', e);
-    }
     
     // Sort users chronologically (oldest registration first)
     const sortedUsers = [...users].sort((a, b) => a.timestamp - b.timestamp);
@@ -2608,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (entry.pdfUrl) {
-            window.open(entry.pdfUrl, '_blank');
+            window.open((window.API_BASE || '').replace('/api', '') + entry.pdfUrl, '_blank');
         } else if (entry.fileDataUrl) {
             openWith(entry.fileDataUrl);
         } else if (entry._idbKey) {
@@ -2638,8 +2615,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="dso-modal-grid">
                 ${(entry.pdfUrl || entry.fileDataUrl) ? (
                     (entry.hasImage || (entry.fileType && entry.fileType.includes('image'))) ? 
-                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
-                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
+                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
+                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
                 ) : 'Preview tidak tersedia'}
                 <div class="dso-modal-rows">
                     ${[
@@ -4069,35 +4046,6 @@ window.renderAlerts = function() {
                 ]
             });
         }
-
-        // Environment Dashboard Issues (Connected to Environment Stat)
-        const isEnvResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('env-' + seed);
-        let getSeededRand = function(s, mn, mx) { let x = Math.sin(s * 9301 + 49297) * 233280; return mn + (x - Math.floor(x)) * (mx - mn); };
-        let envStatusVal = getSeededRand(seed, 0, 100);
-        if (!isEnvResolved && envStatusVal > 60) {
-            let cpu = Math.floor(getSeededRand(seed+2, 10, 95));
-            let ram = Math.floor(getSeededRand(seed+3, 20, 90));
-            if (envStatusVal > 85) { cpu = Math.max(cpu, 85); ram = Math.max(ram, 85); }
-            
-            const isCritical = envStatusVal > 85;
-            currentAlerts.push({
-                id: 'env-' + seed,
-                dataset: name,
-                type: 'Environment',
-                title: 'Server Resource ' + (isCritical ? 'Critical' : 'Warning'),
-                severity: isCritical ? 'CRITICAL' : 'HIGH',
-                desc: `Environment server for ${name} is in ${isCritical ? 'CRITICAL' : 'WARNING'} state with high resource usage.`,
-                timeAgo: Math.floor(seededRand(seed * 41, 1, 60)) + ' mins ago',
-                records: 'N/A',
-                note: `Check server health and running pipelines for ${name}. Investigate the active processes consuming resources.`,
-                breakdown: [
-                    `<li>Affected Service: <strong>${name} Pipeline</strong></li>`,
-                    `<li>CPU Usage: <strong><span style="color:${cpu > 85 ? '#ef4444' : '#fbbf24'}">${cpu}%</span></strong></li>`,
-                    `<li>RAM Usage: <strong><span style="color:${ram > 85 ? '#ef4444' : '#fbbf24'}">${ram}%</span></strong></li>`,
-                    `<li>Recommended Action: <a href="#" onclick="window.openEnvMonitoring('${seed}'); return false;" style="color:#60a5fa;text-decoration:underline;">Open Live Monitoring</a></li>`
-                ]
-            });
-        }
     });
     
     // Sort critical first, then high
@@ -4109,14 +4057,12 @@ window.renderAlerts = function() {
     const highCount = currentAlerts.filter(a => a.severity === 'HIGH').length;
     const dqCount = currentAlerts.filter(a => a.type === 'Data Quality').length;
     const plCount = currentAlerts.filter(a => a.type === 'Pipeline').length;
-    const envCount = currentAlerts.filter(a => a.type === 'Environment').length;
     
     const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     setEl('alerts-stat-critical', criticalCount);
     setEl('alerts-stat-high', highCount);
     setEl('alerts-stat-dq', dqCount);
     setEl('alerts-stat-pipeline', plCount);
-    setEl('alerts-stat-env', envCount);
 
     updateAlertList();
 };
@@ -4575,7 +4521,7 @@ window.closeFixModal = function() {
 };
 
 // Django API Integration
-window.API_BASE = '/implementation/api-content';
+window.API_BASE = '/api-content';
 window.apiSyncEntries = async function() {
     try {
         const emailParam = (currentUser && currentUser.email) ? ('?email=' + encodeURIComponent(currentUser.email)) : '';
@@ -5605,7 +5551,7 @@ window.mnSendToIC = async function(idx) {
 
     try {
         // Step 1: Simpan issue ke backend kita
-        const createResp = await fetch(window.API_BASE + '/maintenance-issues/', {
+        const createResp = await fetch('/api-content/maintenance-issues/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _getCSRF() },
             body: JSON.stringify({
@@ -6089,7 +6035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function getDataUrlFromEntry(ent) {
     if (ent.pdfUrl) {
         try {
-            const url = ent.pdfUrl;
+            const url = (window.API_BASE || '').replace('/api', '') + ent.pdfUrl;
             const res = await fetch(url);
             const blob = await res.blob();
             return await new Promise((resolve) => {
@@ -8203,7 +8149,7 @@ window.openPdfPreview = async function(id, filename) {
     }
 };
 
-window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm, inputConfig = null) {
+window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm) {
     let overlay = document.getElementById('custom-action-modal-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -8226,16 +8172,6 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
     const rgbaBorder = iconColor === '#f87171' ? 'rgba(239, 68, 68, 0.2)' : (iconColor === '#38bdf8' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)');
     const textColor = iconColor === '#f87171' ? '#fca5a5' : (iconColor === '#38bdf8' ? '#7dd3fc' : '#6ee7b7');
 
-    let inputHtml = '';
-    if (inputConfig) {
-        inputHtml = `
-            <div style="width: 100%; text-align: left; margin-bottom: 24px;">
-                <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 8px;">${inputConfig.label}</label>
-                <input type="text" id="custom-action-input" value="${inputConfig.defaultValue || ''}" placeholder="${inputConfig.placeholder || ''}" style="width: 100%; padding: 12px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f8fafc; font-size: 1rem; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='${iconColor}'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-            </div>
-        `;
-    }
-
     overlay.innerHTML = `
         <div style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 32px 24px; width: 90%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; font-family: 'Inter', sans-serif; animation: fadeIn 0.2s ease-out;">
             <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #64748b; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -8254,11 +8190,10 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
                         <div style="color: #f8fafc; font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${targetName}</div>
                     </div>
                 </div>
-                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: ${inputConfig ? '16px' : '24px'}; display: flex; gap: 12px;">
+                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; gap: 12px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     <p style="color: ${textColor}; margin: 0; font-size: 0.875rem; line-height: 1.5;">${infoText}</p>
                 </div>
-                ${inputHtml}
                 <div style="display: flex; gap: 12px; width: 100%;">
                     <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; font-weight: 600; cursor: pointer;">Cancel</button>
                     <button id="custom-action-btn-yes" style="flex: 1; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, ${actionColors[0]}, ${actionColors[1]}); border: none; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -8280,21 +8215,11 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
         
         try {
             if (onConfirm) {
-                let inputValue = null;
-                const inputEl = document.getElementById('custom-action-input');
-                if (inputEl) {
-                    inputValue = inputEl.value.trim();
-                    if (!inputValue) {
-                        inputEl.style.borderColor = '#ef4444';
-                        return; // Prevent submission if empty
-                    }
-                }
-                
                 const isPromise = onConfirm.constructor.name === 'AsyncFunction' || (typeof onConfirm === 'function' && onConfirm.toString().includes('async'));
                 if (isPromise) {
-                    await onConfirm(inputValue);
+                    await onConfirm();
                 } else {
-                    const result = onConfirm(inputValue);
+                    const result = onConfirm();
                     if (result instanceof Promise) await result;
                 }
             }
@@ -8408,31 +8333,9 @@ window.submitToIntRing = function(filename, id) {
                 
                 const data = await response.json();
 
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Success',
-                        details: `File: ${filename}, Project ID: ${projectId}, Response ID: ${data.submission_id}`
-                    })
-                }).catch(e => console.error("Log error", e));
-
                 window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
                 if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
             } catch (e) {
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Failed',
-                        details: `File: ${filename}, Project ID: ${projectId}, Error: ${e.message}`
-                    })
-                }).catch(err => console.error("Log error", err));
-
                 window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
                 if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }

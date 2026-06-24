@@ -8366,8 +8366,6 @@ window.submitToIntRing = function(filename, id) {
         "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
         async function() {
             try {
-                if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
-                
                 const blob = await window.getPdfBlobFromDB(id);
                 let projectId = await new Promise((resolve) => {
                     const overlay = document.createElement('div');
@@ -8451,6 +8449,8 @@ window.submitToIntRing = function(filename, id) {
                     return;
                 }
                 
+                if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
+
                 let formData = new FormData();
                 formData.append("project_id", parseInt(projectId, 10)); 
                 formData.append("phase", "Implementation");

@@ -8355,127 +8355,126 @@ window.showApiResponseModal = function(heading, message, isError) {
     overlay.style.display = 'flex';
 };
 
-window.submitToIntRing = function(filename, id) {
-    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width: 20px; height: 20px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-    window.showPdfActionModal(
-        "Submit to IntRing PM",
-        "Transmit this document to the main IntRing PM web via API.",
-        fileIcon, "File to be sent", filename,
-        `Are you sure you want to submit "${filename}" as an Implementation Deliverable?`,
-        "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function() {
-            try {
-                const blob = await window.getPdfBlobFromDB(id);
-                let projectId = await new Promise((resolve) => {
-                    const overlay = document.createElement('div');
-                    Object.assign(overlay.style, {
-                        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', zIndex: '99999', backdropFilter: 'blur(3px)'
-                    });
+window.submitToIntRing = async function(filename, id) {
+    let loadingOverlay = null;
+    try {
+        let projectId = await new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            Object.assign(overlay.style, {
+                position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: '99999', backdropFilter: 'blur(3px)'
+            });
 
-                    const modal = document.createElement('div');
-                    Object.assign(modal.style, {
-                        backgroundColor: '#1E1E2D', padding: '24px', borderRadius: '12px',
-                        width: '400px', maxWidth: '90%', boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-                        border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: 'Inter, sans-serif'
-                    });
+            const modal = document.createElement('div');
+            Object.assign(modal.style, {
+                backgroundColor: '#1E1E2D', padding: '24px', borderRadius: '12px',
+                width: '400px', maxWidth: '90%', boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: 'Inter, sans-serif'
+            });
 
-                    const title = document.createElement('h3');
-                    title.innerText = 'Kirim ke IntRing PM';
-                    title.style.margin = '0 0 10px 0';
-                    title.style.fontSize = '18px';
+            const title = document.createElement('h3');
+            title.innerText = 'Kirim ke IntRing PM';
+            title.style.margin = '0 0 10px 0';
+            title.style.fontSize = '18px';
 
-                    const desc = document.createElement('p');
-                    desc.innerText = 'Masukkan ID Proyek tujuan:';
-                    desc.style.margin = '0 0 20px 0';
-                    desc.style.color = '#A0A0B5';
-                    desc.style.fontSize = '14px';
+            const desc = document.createElement('p');
+            desc.innerText = `Masukkan ID Proyek tujuan:`;
+            desc.style.margin = '0 0 20px 0';
+            desc.style.color = '#A0A0B5';
+            desc.style.fontSize = '14px';
 
-                    const input = document.createElement('input');
-                    input.type = 'number';
-                    input.value = '1';
-                    Object.assign(input.style, {
-                        width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3F3F5A',
-                        backgroundColor: '#151521', color: '#fff', marginBottom: '20px', boxSizing: 'border-box',
-                        fontSize: '15px'
-                    });
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = '1';
+            Object.assign(input.style, {
+                width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3F3F5A',
+                backgroundColor: '#151521', color: '#fff', marginBottom: '20px', boxSizing: 'border-box',
+                fontSize: '15px'
+            });
 
-                    const btnContainer = document.createElement('div');
-                    btnContainer.style.display = 'flex';
-                    btnContainer.style.justifyContent = 'flex-end';
-                    btnContainer.style.gap = '12px';
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.justifyContent = 'flex-end';
+            btnContainer.style.gap = '12px';
 
-                    const cancelBtn = document.createElement('button');
-                    cancelBtn.innerText = 'Batal';
-                    Object.assign(cancelBtn.style, {
-                        padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent',
-                        color: '#A0A0B5', cursor: 'pointer', fontWeight: '500', transition: '0.2s'
-                    });
-                    cancelBtn.onmouseover = () => cancelBtn.style.color = '#fff';
-                    cancelBtn.onmouseout = () => cancelBtn.style.color = '#A0A0B5';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerText = 'Batal';
+            Object.assign(cancelBtn.style, {
+                padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent',
+                color: '#A0A0B5', cursor: 'pointer', fontWeight: '500', transition: '0.2s'
+            });
+            cancelBtn.onmouseover = () => cancelBtn.style.color = '#fff';
+            cancelBtn.onmouseout = () => cancelBtn.style.color = '#A0A0B5';
 
-                    const submitBtn = document.createElement('button');
-                    submitBtn.innerText = 'Kirim';
-                    Object.assign(submitBtn.style, {
-                        padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#3699FF',
-                        color: '#fff', cursor: 'pointer', fontWeight: '600', transition: '0.2s'
-                    });
-                    submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#187DE4';
-                    submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#3699FF';
+            const submitBtn = document.createElement('button');
+            submitBtn.innerText = 'Kirim';
+            Object.assign(submitBtn.style, {
+                padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#3699FF',
+                color: '#fff', cursor: 'pointer', fontWeight: '600', transition: '0.2s'
+            });
+            submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#187DE4';
+            submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#3699FF';
 
-                    btnContainer.append(cancelBtn, submitBtn);
-                    modal.append(title, desc, input, btnContainer);
-                    overlay.append(modal);
-                    document.body.append(overlay);
+            btnContainer.append(cancelBtn, submitBtn);
+            modal.append(title, desc, input, btnContainer);
+            overlay.append(modal);
+            document.body.append(overlay);
 
-                    setTimeout(() => input.focus(), 100);
+            setTimeout(() => input.focus(), 100);
 
-                    const close = (val) => {
-                        document.body.removeChild(overlay);
-                        resolve(val);
-                    };
+            const close = (val) => {
+                if (val === null) document.body.removeChild(overlay);
+                resolve({ val, overlay, modal });
+            };
 
-                    cancelBtn.onclick = () => close(null);
-                    submitBtn.onclick = () => close(input.value);
-                    input.onkeydown = (e) => {
-                        if (e.key === 'Enter') close(input.value);
-                        if (e.key === 'Escape') close(null);
-                    };
-                });
-                if (!projectId) {
-                    if(window.addNotification) window.addNotification("Dibatalkan", "Pengiriman dibatalkan karena ID Proyek kosong.", "warning");
-                    return;
-                }
-                
-                if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
+            cancelBtn.onclick = () => close(null);
+            submitBtn.onclick = () => close(input.value);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') close(input.value);
+                if (e.key === 'Escape') close(null);
+            };
+        });
 
-                let formData = new FormData();
-                formData.append("project_id", parseInt(projectId, 10)); 
-                formData.append("phase", "Implementation");
-                formData.append("file", blob, filename);
+        if (!projectId.val) return;
+        loadingOverlay = projectId.overlay;
 
-                const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
-                    method: 'POST',
-                    body: formData
-                });
+        projectId.modal.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem; min-height: 250px;">
+                <div class="alerts-loading-spinner" style="border-top-color: #38bdf8; margin: 0 auto 1.5rem auto; width: 48px; height: 48px; border-width: 4px; border-radius: 50%; border-style: solid; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; animation: spin 1s linear infinite;"></div>
+                <h4 style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;">Sedang Memproses...</h4>
+                <p style="color: #94a3b8; line-height: 1.5;">Mengirim file '${filename}' ke IntRing PM.</p>
+            </div>
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        `;
 
-                if (!response.ok) {
-                    const errObj = await response.json().catch(()=>({}));
-                    throw new Error(errObj.error || `HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
+        if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
 
-                window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
-                if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
-            } catch (e) {
-                window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
-                if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
-            }
+        const blob = await window.getPdfBlobFromDB(id);
+        let formData = new FormData();
+        formData.append("project_id", parseInt(projectId.val, 10)); 
+        formData.append("phase", "Implementation");
+        formData.append("file", blob, filename);
+
+        const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errObj = await response.json().catch(()=>({}));
+            throw new Error(errObj.error || `HTTP ${response.status}`);
         }
-    );
+        
+        const data = await response.json();
+        if (loadingOverlay) document.body.removeChild(loadingOverlay);
+        window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
+        if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
+    } catch (e) {
+        if (loadingOverlay && loadingOverlay.parentNode) loadingOverlay.parentNode.removeChild(loadingOverlay);
+        window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
+        if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
+    }
 };
 
 window.togglePasswordVisibility = function(id) {

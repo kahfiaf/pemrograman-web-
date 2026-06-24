@@ -8203,7 +8203,7 @@ window.openPdfPreview = async function(id, filename) {
     }
 };
 
-window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm, inputConfig = null) {
+window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm) {
     let overlay = document.getElementById('custom-action-modal-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -8226,16 +8226,6 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
     const rgbaBorder = iconColor === '#f87171' ? 'rgba(239, 68, 68, 0.2)' : (iconColor === '#38bdf8' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)');
     const textColor = iconColor === '#f87171' ? '#fca5a5' : (iconColor === '#38bdf8' ? '#7dd3fc' : '#6ee7b7');
 
-    let inputHtml = '';
-    if (inputConfig) {
-        inputHtml = `
-            <div style="width: 100%; text-align: left; margin-bottom: 24px;">
-                <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 8px;">${inputConfig.label}</label>
-                <input type="text" id="custom-action-input" value="${inputConfig.defaultValue || ''}" placeholder="${inputConfig.placeholder || ''}" style="width: 100%; padding: 12px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f8fafc; font-size: 1rem; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='${iconColor}'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-            </div>
-        `;
-    }
-
     overlay.innerHTML = `
         <div style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 32px 24px; width: 90%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; font-family: 'Inter', sans-serif; animation: fadeIn 0.2s ease-out;">
             <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #64748b; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -8254,11 +8244,10 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
                         <div style="color: #f8fafc; font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${targetName}</div>
                     </div>
                 </div>
-                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: ${inputConfig ? '16px' : '24px'}; display: flex; gap: 12px;">
+                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; gap: 12px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     <p style="color: ${textColor}; margin: 0; font-size: 0.875rem; line-height: 1.5;">${infoText}</p>
                 </div>
-                ${inputHtml}
                 <div style="display: flex; gap: 12px; width: 100%;">
                     <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; font-weight: 600; cursor: pointer;">Cancel</button>
                     <button id="custom-action-btn-yes" style="flex: 1; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, ${actionColors[0]}, ${actionColors[1]}); border: none; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -8280,21 +8269,11 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
         
         try {
             if (onConfirm) {
-                let inputValue = null;
-                const inputEl = document.getElementById('custom-action-input');
-                if (inputEl) {
-                    inputValue = inputEl.value.trim();
-                    if (!inputValue) {
-                        inputEl.style.borderColor = '#ef4444';
-                        return; // Prevent submission if empty
-                    }
-                }
-                
                 const isPromise = onConfirm.constructor.name === 'AsyncFunction' || (typeof onConfirm === 'function' && onConfirm.toString().includes('async'));
                 if (isPromise) {
-                    await onConfirm(inputValue);
+                    await onConfirm();
                 } else {
-                    const result = onConfirm(inputValue);
+                    const result = onConfirm();
                     if (result instanceof Promise) await result;
                 }
             }
@@ -8376,73 +8355,149 @@ window.showApiResponseModal = function(heading, message, isError) {
     overlay.style.display = 'flex';
 };
 
-window.submitToIntRing = function(filename, id) {
-    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width: 20px; height: 20px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-    window.showPdfActionModal(
-        "Submit to IntRing PM",
-        "Transmit this document to the main IntRing PM web via API.",
-        fileIcon, "File to be sent", filename,
-        `Are you sure you want to submit "${filename}" as an Implementation Deliverable?`,
-        "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function(projectId) {
-            try {
-                if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
-                
-                const blob = await window.getPdfBlobFromDB(id);
-                
-                let formData = new FormData();
-                formData.append("project_id", projectId); 
-                formData.append("phase", "Implementation");
-                formData.append("file", blob, filename);
+window.submitToIntRing = async function(filename, id) {
+    let loadingOverlay = null;
+    try {
+        let projectId = await new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            Object.assign(overlay.style, {
+                position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: '99999', backdropFilter: 'blur(3px)'
+            });
 
-                const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
-                    method: 'POST',
-                    body: formData
-                });
+            const modal = document.createElement('div');
+            Object.assign(modal.style, {
+                backgroundColor: '#1E1E2D', padding: '24px', borderRadius: '12px',
+                width: '400px', maxWidth: '90%', boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: 'Inter, sans-serif'
+            });
 
-                if (!response.ok) {
-                    const errObj = await response.json().catch(()=>({}));
-                    throw new Error(errObj.error || `HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
+            const title = document.createElement('h3');
+            title.innerText = 'Kirim ke IntRing PM';
+            title.style.margin = '0 0 10px 0';
+            title.style.fontSize = '18px';
 
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Success',
-                        details: `File: ${filename}, Project ID: ${projectId}, Response ID: ${data.submission_id}`
-                    })
-                }).catch(e => console.error("Log error", e));
+            const desc = document.createElement('p');
+            desc.innerText = `Masukkan ID Proyek tujuan:`;
+            desc.style.margin = '0 0 20px 0';
+            desc.style.color = '#A0A0B5';
+            desc.style.fontSize = '14px';
 
-                window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
-                if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
-            } catch (e) {
-                fetch('/api-content/integration-logs/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action_type: 'Submit to IntRing PM',
-                        target_system: 'IntRing PM API',
-                        status: 'Failed',
-                        details: `File: ${filename}, Project ID: ${projectId}, Error: ${e.message}`
-                    })
-                }).catch(err => console.error("Log error", err));
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = '1';
+            Object.assign(input.style, {
+                width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3F3F5A',
+                backgroundColor: '#151521', color: '#fff', marginBottom: '20px', boxSizing: 'border-box',
+                fontSize: '15px'
+            });
 
-                window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
-                if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
-            }
-        },
-        {
-            label: "Masukkan ID Proyek dari IntRing PM (Contoh: 1, 2, atau 3):",
-            defaultValue: "1",
-            placeholder: "Contoh: 1"
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.justifyContent = 'flex-end';
+            btnContainer.style.gap = '12px';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerText = 'Batal';
+            Object.assign(cancelBtn.style, {
+                padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent',
+                color: '#A0A0B5', cursor: 'pointer', fontWeight: '500', transition: '0.2s'
+            });
+            cancelBtn.onmouseover = () => cancelBtn.style.color = '#fff';
+            cancelBtn.onmouseout = () => cancelBtn.style.color = '#A0A0B5';
+
+            const submitBtn = document.createElement('button');
+            submitBtn.innerText = 'Kirim';
+            Object.assign(submitBtn.style, {
+                padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#3699FF',
+                color: '#fff', cursor: 'pointer', fontWeight: '600', transition: '0.2s'
+            });
+            submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#187DE4';
+            submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#3699FF';
+
+            btnContainer.append(cancelBtn, submitBtn);
+            modal.append(title, desc, input, btnContainer);
+            overlay.append(modal);
+            document.body.append(overlay);
+
+            setTimeout(() => input.focus(), 100);
+
+            const close = (val) => {
+                if (val === null) document.body.removeChild(overlay);
+                resolve({ val, overlay, modal });
+            };
+
+            cancelBtn.onclick = () => close(null);
+            submitBtn.onclick = () => close(input.value);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') close(input.value);
+                if (e.key === 'Escape') close(null);
+            };
+        });
+
+        if (!projectId.val) return;
+        loadingOverlay = projectId.overlay;
+
+        projectId.modal.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem; min-height: 250px;">
+                <div class="alerts-loading-spinner" style="border-top-color: #38bdf8; margin: 0 auto 1.5rem auto; width: 48px; height: 48px; border-width: 4px; border-radius: 50%; border-style: solid; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; animation: spin 1s linear infinite;"></div>
+                <h4 style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;">Sedang Memproses...</h4>
+                <p style="color: #94a3b8; line-height: 1.5;">Mengirim file '${filename}' ke IntRing PM.</p>
+            </div>
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        `;
+
+        if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
+
+        const blob = await window.getPdfBlobFromDB(id);
+        let formData = new FormData();
+        formData.append("project_id", parseInt(projectId.val, 10)); 
+        formData.append("phase", "Implementation");
+        formData.append("file", blob, filename);
+
+        const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errObj = await response.json().catch(()=>({}));
+            throw new Error(errObj.error || `HTTP ${response.status}`);
         }
-    );
+        
+        const data = await response.json();
+        
+        fetch('/api-content/integration-logs/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action_type: 'Submit to IntRing PM',
+                target_system: 'IntRing PM API',
+                status: 'Success',
+                details: `File: ${filename}, Project ID: ${projectId.val}, Response ID: ${data.submission_id}`
+            })
+        }).catch(e => console.error("Log error", e));
+
+        if (loadingOverlay) document.body.removeChild(loadingOverlay);
+        window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
+        if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
+    } catch (e) {
+        fetch('/api-content/integration-logs/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action_type: 'Submit to IntRing PM',
+                target_system: 'IntRing PM API',
+                status: 'Failed',
+                details: `File: ${filename}, Project ID: ${projectId?.val || 'N/A'}, Error: ${e.message}`
+            })
+        }).catch(err => console.error("Log error", err));
+
+        if (loadingOverlay && loadingOverlay.parentNode) loadingOverlay.parentNode.removeChild(loadingOverlay);
+        window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
+        if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
+    }
 };
 
 window.togglePasswordVisibility = function(id) {

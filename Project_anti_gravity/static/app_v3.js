@@ -8369,10 +8369,14 @@ window.submitToIntRing = function(filename, id) {
                 if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
                 
                 const blob = await window.getPdfBlobFromDB(id);
+                let projectId = prompt("Masukkan ID Proyek dari IntRing PM (Contoh: 1, 2, atau 3):", "1");
+                if (!projectId) {
+                    if(window.addNotification) window.addNotification("Dibatalkan", "Pengiriman dibatalkan karena ID Proyek kosong.", "warning");
+                    return;
+                }
                 
                 let formData = new FormData();
-                // "1" is the hardcoded project ID for the demo based on the user's IntRing PM
-                formData.append("project_id", 1); 
+                formData.append("project_id", parseInt(projectId, 10)); 
                 formData.append("phase", "Implementation");
                 formData.append("file", blob, filename);
 

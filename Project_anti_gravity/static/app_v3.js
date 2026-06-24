@@ -8257,9 +8257,30 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
             </div>
         </div>
     `;
-    document.getElementById('custom-action-btn-yes').onclick = function() {
-        document.getElementById('custom-action-modal-overlay').style.display = 'none';
-        if (onConfirm) onConfirm();
+    document.getElementById('custom-action-btn-yes').onclick = async function() {
+        const modalContent = overlay.children[0];
+        modalContent.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem; min-height: 250px;">
+                <div class="alerts-loading-spinner" style="border-top-color: ${iconColor}; margin: 0 auto 1.5rem auto; width: 48px; height: 48px; border-width: 4px;"></div>
+                <h4 style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;">Sedang Memproses...</h4>
+                <p style="color: #94a3b8; line-height: 1.5;">Mohon tunggu sebentar.</p>
+            </div>
+        `;
+        
+        try {
+            if (onConfirm) {
+                const isPromise = onConfirm.constructor.name === 'AsyncFunction' || (typeof onConfirm === 'function' && onConfirm.toString().includes('async'));
+                if (isPromise) {
+                    await onConfirm();
+                } else {
+                    const result = onConfirm();
+                    if (result instanceof Promise) await result;
+                }
+            }
+        } finally {
+            const el = document.getElementById('custom-action-modal-overlay');
+            if (el) el.style.display = 'none';
+        }
     };
     overlay.style.display = 'flex';
 };

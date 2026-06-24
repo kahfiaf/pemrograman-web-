@@ -4935,6 +4935,10 @@ window.openEnvMonitoring = function(idStr) {
     let ram = Math.floor(getSeededRand(seed+3, 20, 90));
     let disk = Math.floor(getSeededRand(seed+4, 15, 88));
 
+    if (status === 'Critical') { cpu = Math.max(cpu, 85); ram = Math.max(ram, 85); }
+    else if (status === 'Healthy') { cpu = Math.min(cpu, 65); ram = Math.min(ram, 70); }
+    console.log("FIX APPLIED: CPU clamped to", cpu, "RAM clamped to", ram, "for status", status);
+
     // Update Top Cards
     document.getElementById('envm-cpu-val').textContent = cpu.toFixed(1);
     document.getElementById('envm-cpu-bar').style.width = cpu + '%';

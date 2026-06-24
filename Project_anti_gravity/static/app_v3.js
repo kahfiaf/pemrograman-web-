@@ -4441,10 +4441,44 @@ window.closeAnalyzeModal = function() {
 window.sendIssueToIC = function(id) {
     const alert = currentAlerts.find(a => a.id === id);
     if (!alert) return;
-    const overlay = document.getElementById('ic-send-modal-overlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-    }
+    
+    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" style="width: 20px; height: 20px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+    
+    window.showPdfActionModal(
+        "Submit to IC Group",
+        "Transmit this issue to the IC Group via API.",
+        fileIcon, "Issue to be sent", alert.title || alert.id,
+        `Are you sure you want to submit the issue "${alert.title || alert.id}" to the IC Group?`,
+        "Submit Issue", ['#10b981', '#059669'], '#10b981', mainIcon,
+        async function() {
+            try {
+                if(window.addNotification) window.addNotification("Sending", "Sedang mengirim ke IC Group...", "info");
+                
+                let formData = new FormData();
+                formData.append("issue_id", alert.id); 
+                formData.append("issue_title", alert.title || alert.id);
+                
+                const response = await fetch("http://72.61.215.222/intelligence-engineering/api/ic-group-submission/?token=INTRING_SECRET_123", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errObj = await response.json().catch(()=>({}));
+                    throw new Error(errObj.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                window.showApiResponseModal("Berhasil Terkirim", `Issue '${alert.title || alert.id}' berhasil dikirim ke IC Group!`, false);
+                if(window.addNotification) window.addNotification("API Transfer", "Issue successfully sent to IC Group.", "success");
+            } catch (e) {
+                window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
+                if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IC Group: " + e.message, "error");
+            }
+        }
+    );
 };
 
 window.viewAlertDetails = function(id) {

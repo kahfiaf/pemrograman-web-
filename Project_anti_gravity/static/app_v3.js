@@ -8203,7 +8203,7 @@ window.openPdfPreview = async function(id, filename) {
     }
 };
 
-window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm) {
+window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, targetName, infoText, actionText, actionColors, iconColor, mainIconSvg, onConfirm, inputConfig = null) {
     let overlay = document.getElementById('custom-action-modal-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -8226,6 +8226,16 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
     const rgbaBorder = iconColor === '#f87171' ? 'rgba(239, 68, 68, 0.2)' : (iconColor === '#38bdf8' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)');
     const textColor = iconColor === '#f87171' ? '#fca5a5' : (iconColor === '#38bdf8' ? '#7dd3fc' : '#6ee7b7');
 
+    let inputHtml = '';
+    if (inputConfig) {
+        inputHtml = `
+            <div style="width: 100%; text-align: left; margin-bottom: 24px;">
+                <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 8px;">${inputConfig.label}</label>
+                <input type="text" id="custom-action-input" value="${inputConfig.defaultValue || ''}" placeholder="${inputConfig.placeholder || ''}" style="width: 100%; padding: 12px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f8fafc; font-size: 1rem; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='${iconColor}'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+            </div>
+        `;
+    }
+
     overlay.innerHTML = `
         <div style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 32px 24px; width: 90%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; font-family: 'Inter', sans-serif; animation: fadeIn 0.2s ease-out;">
             <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #64748b; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -8244,10 +8254,11 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
                         <div style="color: #f8fafc; font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${targetName}</div>
                     </div>
                 </div>
-                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; gap: 12px;">
+                <div style="width: 100%; text-align: left; background: ${rgbaBg}; border: 1px solid ${rgbaBorder}; border-radius: 12px; padding: 16px; margin-bottom: ${inputConfig ? '16px' : '24px'}; display: flex; gap: 12px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     <p style="color: ${textColor}; margin: 0; font-size: 0.875rem; line-height: 1.5;">${infoText}</p>
                 </div>
+                ${inputHtml}
                 <div style="display: flex; gap: 12px; width: 100%;">
                     <button onclick="document.getElementById('custom-action-modal-overlay').style.display='none'" style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; font-weight: 600; cursor: pointer;">Cancel</button>
                     <button id="custom-action-btn-yes" style="flex: 1; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, ${actionColors[0]}, ${actionColors[1]}); border: none; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -8269,11 +8280,21 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
         
         try {
             if (onConfirm) {
+                let inputValue = null;
+                const inputEl = document.getElementById('custom-action-input');
+                if (inputEl) {
+                    inputValue = inputEl.value.trim();
+                    if (!inputValue) {
+                        inputEl.style.borderColor = '#ef4444';
+                        return; // Prevent submission if empty
+                    }
+                }
+                
                 const isPromise = onConfirm.constructor.name === 'AsyncFunction' || (typeof onConfirm === 'function' && onConfirm.toString().includes('async'));
                 if (isPromise) {
-                    await onConfirm();
+                    await onConfirm(inputValue);
                 } else {
-                    const result = onConfirm();
+                    const result = onConfirm(inputValue);
                     if (result instanceof Promise) await result;
                 }
             }
@@ -8364,15 +8385,14 @@ window.submitToIntRing = function(filename, id) {
         fileIcon, "File to be sent", filename,
         `Are you sure you want to submit "${filename}" as an Implementation Deliverable?`,
         "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function() {
+        async function(projectId) {
             try {
                 if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
                 
                 const blob = await window.getPdfBlobFromDB(id);
                 
                 let formData = new FormData();
-                // "1" is the hardcoded project ID for the demo based on the user's IntRing PM
-                formData.append("project_id", 1); 
+                formData.append("project_id", projectId); 
                 formData.append("phase", "Implementation");
                 formData.append("file", blob, filename);
 
@@ -8394,6 +8414,11 @@ window.submitToIntRing = function(filename, id) {
                 window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
                 if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }
+        },
+        {
+            label: "Masukkan ID Proyek dari IntRing PM (Contoh: 1, 2, atau 3):",
+            defaultValue: "1",
+            placeholder: "Contoh: 1"
         }
     );
 };

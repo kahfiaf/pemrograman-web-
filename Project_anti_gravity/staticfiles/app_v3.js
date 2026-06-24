@@ -8310,15 +8310,14 @@ window.submitToIntRing = function(filename, id) {
         fileIcon, "File to be sent", filename,
         `Are you sure you want to submit "${filename}" as an Implementation Deliverable?`,
         "Submit File", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function() {
+        async function(projectId) {
             try {
                 if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
                 
                 const blob = await window.getPdfBlobFromDB(id);
                 
                 let formData = new FormData();
-                // "1" is the hardcoded project ID for the demo based on the user's IntRing PM
-                formData.append("project_id", 1); 
+                formData.append("project_id", projectId); 
                 formData.append("phase", "Implementation");
                 formData.append("file", blob, filename);
 
@@ -8340,6 +8339,11 @@ window.submitToIntRing = function(filename, id) {
                 window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
                 if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
             }
+        },
+        {
+            label: "Masukkan ID Proyek dari IntRing PM (Contoh: 1, 2, atau 3):",
+            defaultValue: "1",
+            placeholder: "Contoh: 1"
         }
     );
 };

@@ -5132,36 +5132,29 @@ window.openEnvMonitoring = function(idStr) {
         </tr>
     `).join('');
 
-    // Fetch Maintenance Notes dynamically for the specific file
-    document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">Loading alerts...</div>';
-    fetch((window.API_BASE || '/api-content') + '/maintenance-issues/')
-        .then(res => res.json())
-        .then(data => {
-            const fileAlerts = data.filter(iss => iss.dataset_name === entry.name);
-            if (fileAlerts.length === 0) {
-                document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
-                return;
-            }
+    // Use the generated Maintenance Notes from currentAlerts
+    if (typeof currentAlerts !== 'undefined') {
+        const fileAlerts = currentAlerts.filter(a => a.dataset === (entry.name || entry.sourceName));
+        if (fileAlerts.length === 0) {
+            document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
+        } else {
             document.getElementById('envm-alerts-list').innerHTML = fileAlerts.map(a => {
-                let type = (a.severity === 'high' || a.severity === 'critical') ? 'warn' : 'info';
+                let type = (a.severity.toLowerCase() === 'high' || a.severity.toLowerCase() === 'critical') ? 'warn' : 'info';
                 let icon = (type === 'warn') ? '&#9888;' : '&#10004;';
-                let dateStr = new Date(a.detected_at).toLocaleString();
-                let title = (a.issue_type + "").replace(/_/g, ' ').toUpperCase();
                 return `
                 <div class="envm-alert-item ${type}">
                     <div class="envm-alert-icon">${icon}</div>
                     <div class="envm-alert-content">
-                        <p><strong>${title}</strong>: ${a.description}</p>
-                        <small>${dateStr}</small>
+                        <p><strong>${a.title}</strong>: ${a.desc}</p>
+                        <small>${a.timeAgo}</small>
                     </div>
                 </div>
                 `;
             }).join('');
-        })
-        .catch(err => {
-            console.error('Failed to fetch alerts:', err);
-            document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #ef4444; text-align: center;">Failed to load alerts.</div>';
-        });
+        }
+    } else {
+        document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
+    }
 
     // Live update simulation
     envmLiveInterval = setInterval(() => {

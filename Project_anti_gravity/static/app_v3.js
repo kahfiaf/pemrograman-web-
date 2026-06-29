@@ -5134,7 +5134,7 @@ window.openEnvMonitoring = function(idStr) {
 
     // Fetch Maintenance Notes dynamically for the specific file
     document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">Loading alerts...</div>';
-    fetch('/api-content/maintenance-issues/')
+    fetch((window.API_BASE || '/api-content') + '/maintenance-issues/')
         .then(res => res.json())
         .then(data => {
             const fileAlerts = data.filter(iss => iss.dataset_name === entry.name);
@@ -8539,7 +8539,7 @@ window.submitToIntRing = async function(filename, id) {
         
         const data = await response.json();
         
-        fetch('/api-content/integration-logs/', {
+        fetch((window.API_BASE || '/api-content') + '/integration-logs/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8554,7 +8554,7 @@ window.submitToIntRing = async function(filename, id) {
         window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
         if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
     } catch (e) {
-        fetch('/api-content/integration-logs/', {
+        fetch((window.API_BASE || '/api-content') + '/integration-logs/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

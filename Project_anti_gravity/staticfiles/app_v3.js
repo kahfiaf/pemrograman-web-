@@ -5181,9 +5181,65 @@ window.openEnvMonitoring = function(idStr) {
         document.getElementById('envm-cpu-leg').textContent = ncpu.toFixed(1) + '%';
         document.getElementById('envm-ram-leg').textContent = nram.toFixed(1) + '%';
         
+        // Update process table slightly to simulate live activity
+        if (typeof procs !== 'undefined') {
+            procs.forEach(p => {
+                if (typeof p.origC === 'undefined') p.origC = parseFloat(p.c);
+                if (typeof p.origM === 'undefined') p.origM = parseFloat(p.m);
+                let newC = p.origC + (Math.random()*4 - 2);
+                let newM = p.origM + (Math.random()*2 - 1);
+                p.c = Math.min(100, Math.max(0, newC)).toFixed(1);
+                p.m = Math.min(100, Math.max(0, newM)).toFixed(1);
+            });
+            document.getElementById('envm-process-table').innerHTML = procs.map(p => `
+                <tr>
+                    <td>
+                        <div class="envm-proc-name">
+                            <div class="envm-proc-icon">&#9881;</div>
+                            ${p.n}
+                        </div>
+                    </td>
+                    <td>${Math.floor(Math.random()*20000 + 1000)}</td>
+                    <td>${p.u}</td>
+                    <td>
+                        <div class="envm-table-bar">
+                            <div class="envm-tb-bg"><div class="envm-tb-fill bg-blue-500" style="width: ${p.c}%; background: #3b82f6;"></div></div>
+                            ${p.c}%
+                        </div>
+                    </td>
+                    <td><div class="envm-table-bar">
+                            <div class="envm-tb-bg"><div class="envm-tb-fill bg-purple-500" style="width: ${p.m}%; background: #a855f7;"></div></div>
+                            ${p.m}%
+                        </div>
+                    </td>
+                    <td>
+                        <div class="envm-status-cell">
+                            <span class="dot healthy"></span> running
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
         // Update clock
         document.getElementById('envm-clock').textContent = new Date().toLocaleTimeString();
     }, 2500);
+};
+
+window.showProcessExplanation = function() {
+    window.showApiResponseModal("Informasi Top Inference Processes", `
+        <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+            <p style="margin-bottom: 12px;">Tabel ini menyimulasikan daftar program (proses) yang sedang berjalan di dalam server backend:</p>
+            <ul style="margin-top: 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                <li><strong>python3 jastip_scraper.py:</strong> Skrip bot pengambil data dari luar negeri.</li>
+                <li><strong>postgres customs_db:</strong> Mesin database tempat menyimpan data.</li>
+                <li><strong>node customs-api.js:</strong> Program jembatan penghubung API Bea Cukai.</li>
+                <li><strong>nginx worker process:</strong> Web Server utama yang menangani trafik masuk.</li>
+                <li><strong>celery shipping_webhook:</strong> Pekerja latar belakang untuk notifikasi kurir.</li>
+                <li><strong>redis-server:</strong> Memori super cepat untuk antrean tugas dan cache.</li>
+            </ul>
+        </div>
+    `, false);
 };
 
 // Add event listener for the back button

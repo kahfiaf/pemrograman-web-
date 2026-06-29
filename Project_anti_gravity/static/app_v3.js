@@ -4021,7 +4021,7 @@ window.renderAlerts = function() {
 
     entries.forEach((entry, idx) => {
         const seed = entry.id || (idx + 1);
-        const name = entry.name || entry.sourceName || 'Dataset';
+        const name = entry.fileName || entry.title || entry.name || entry.sourceName || 'Dataset';
         
         const isPlResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('pl-' + seed);
         const isDqResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('dq-' + seed);
@@ -5134,7 +5134,8 @@ window.openEnvMonitoring = function(idStr) {
 
     // Use the generated Maintenance Notes from currentAlerts
     if (typeof currentAlerts !== 'undefined') {
-        const fileAlerts = currentAlerts.filter(a => a.dataset === (entry.name || entry.sourceName));
+        const expectedName = entry.fileName || entry.title || entry.name || entry.sourceName || 'Dataset';
+        const fileAlerts = currentAlerts.filter(a => a.dataset === expectedName);
         if (fileAlerts.length === 0) {
             document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
         } else {

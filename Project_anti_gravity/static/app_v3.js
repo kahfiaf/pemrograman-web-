@@ -5269,14 +5269,6 @@ window.showProcessExplanation = function() {
         <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
             <p style="margin-bottom: 12px;">Tabel ini menyimulasikan daftar program (proses) yang sedang berjalan di dalam server backend:</p>
             <p style="margin-bottom: 12px; margin-top: 12px;">Kolom <strong>API Load</strong> menunjukkan beban pemrosesan/CPU dari tugas tersebut, sedangkan bar <strong>Memory</strong> menunjukkan persentase RAM yang sedang digunakan.</p>
-            <ul style="margin-top: 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>python3 jastip_scraper.py:</strong> Skrip bot pengambil data dari luar negeri.</li>
-                <li><strong>postgres customs_db:</strong> Mesin database tempat menyimpan data.</li>
-                <li><strong>node customs-api.js:</strong> Program jembatan penghubung API Bea Cukai.</li>
-                <li><strong>nginx worker process:</strong> Web Server utama yang menangani trafik masuk.</li>
-                <li><strong>celery shipping_webhook:</strong> Pekerja latar belakang untuk notifikasi kurir.</li>
-                <li><strong>redis-server:</strong> Memori super cepat untuk antrean tugas dan cache.</li>
-            </ul>
         </div>
     `, false);
 };

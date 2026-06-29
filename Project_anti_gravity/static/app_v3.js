@@ -5172,6 +5172,49 @@ window.openEnvMonitoring = function(idStr) {
         let ncpu = Math.min(100, Math.max(0, cpu + (Math.random()*10 - 5)));
         let nram = Math.min(100, Math.max(0, ram + (Math.random()*4 - 2)));
         
+        // Update process table slightly to simulate live activity
+        if (typeof window.envmProcs !== 'undefined') {
+            let sumC = 0, sumM = 0;
+            window.envmProcs.forEach(p => {
+                let newC = p.origC + (Math.random()*4 - 2);
+                let newM = p.origM + (Math.random()*2 - 1);
+                p.c = Math.min(100, Math.max(0, newC)).toFixed(1);
+                p.m = Math.min(100, Math.max(0, newM)).toFixed(1);
+                sumC += parseFloat(p.c);
+                sumM += parseFloat(p.m);
+            });
+            
+            // Re-sort periodically based on simulated fluctuations
+            window.envmProcs.sort((a, b) => parseFloat(b.c) - parseFloat(a.c));
+            
+            // Synchronize the total CPU and RAM to exactly match the sum of these processes
+            ncpu = Math.min(100, sumC);
+            nram = Math.min(100, sumM);
+            
+            // Update Top Level Gauges dynamically
+            let cpuValEl = document.getElementById('envm-cpu-val');
+            if (cpuValEl) cpuValEl.textContent = ncpu.toFixed(1);
+            let cpuBarEl = document.getElementById('envm-cpu-bar');
+            if (cpuBarEl) cpuBarEl.style.width = ncpu + '%';
+            let cpuLblEl = document.getElementById('envm-cpu-lbl');
+            if (cpuLblEl) cpuLblEl.textContent = ncpu.toFixed(1) + '% used';
+            if (envmCharts.cpu) {
+                envmCharts.cpu.data.datasets[0].data = [ncpu, 100-ncpu];
+                envmCharts.cpu.update();
+            }
+
+            let ramValEl = document.getElementById('envm-ram-val');
+            if (ramValEl) ramValEl.textContent = nram.toFixed(1);
+            let ramBarEl = document.getElementById('envm-ram-bar');
+            if (ramBarEl) ramBarEl.style.width = nram + '%';
+            let ramLblEl = document.getElementById('envm-ram-lbl');
+            if (ramLblEl) ramLblEl.textContent = (nram * 0.32).toFixed(1) + ' GB used';
+            if (envmCharts.ram) {
+                envmCharts.ram.data.datasets[0].data = [nram, 100-nram];
+                envmCharts.ram.update();
+            }
+        }
+        
         envmCharts.resource.data.datasets[0].data.shift();
         envmCharts.resource.data.datasets[0].data.push(ncpu);
         envmCharts.resource.data.datasets[1].data.shift();
@@ -5185,18 +5228,8 @@ window.openEnvMonitoring = function(idStr) {
         document.getElementById('envm-cpu-leg').textContent = ncpu.toFixed(1) + '%';
         document.getElementById('envm-ram-leg').textContent = nram.toFixed(1) + '%';
         
-        // Update process table slightly to simulate live activity
         if (typeof window.envmProcs !== 'undefined') {
-            window.envmProcs.forEach(p => {
-                let newC = p.origC + (Math.random()*4 - 2);
-                let newM = p.origM + (Math.random()*2 - 1);
-                p.c = Math.min(100, Math.max(0, newC)).toFixed(1);
-                p.m = Math.min(100, Math.max(0, newM)).toFixed(1);
-            });
-            // Re-sort periodically based on simulated fluctuations
-            window.envmProcs.sort((a, b) => parseFloat(b.c) - parseFloat(a.c));
-            
-            document.getElementById('envm-process-table').innerHTML = window.envmProcs.map(p => `
+            document.getElementById('envm-process-table').innerHTML = window.envmProcs.slice(0, 6).map(p => `
                 <tr>
                     <td>
                         <div class="envm-proc-name">

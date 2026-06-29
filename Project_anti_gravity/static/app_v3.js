@@ -5093,15 +5093,25 @@ window.openEnvMonitoring = function(idStr) {
         }
     });
 
-    // Jastip Themed Processes
-    const procs = [
-        { n: 'python3 jastip_scraper.py', u: 'app', c: (cpu*0.4).toFixed(1), m: (ram*0.3).toFixed(1) },
-        { n: 'postgres: customs_db', u: 'postgres', c: (cpu*0.2).toFixed(1), m: (ram*0.25).toFixed(1) },
-        { n: 'node customs-api.js', u: 'app', c: (cpu*0.15).toFixed(1), m: (ram*0.15).toFixed(1) },
-        { n: 'nginx: worker process', u: 'www-data', c: '5.2', m: '4.0' },
-        { n: 'celery: shipping_webhook', u: 'app', c: '3.5', m: '6.8' },
-        { n: 'redis-server', u: 'redis', c: '2.8', m: '5.2' }
+    // Features as Processes (select top 6)
+    let allProcs = [
+        { n: 'Data Source Overview', u: 'system', origC: cpu*0.15, origM: ram*0.15 },
+        { n: 'Data Quality Dashboard', u: 'analytics', origC: cpu*0.2, origM: ram*0.25 },
+        { n: 'Pipeline Monitoring', u: 'pipeline', origC: cpu*0.25, origM: ram*0.2 },
+        { n: 'Maintenance Note', u: 'alerts', origC: cpu*0.05, origM: ram*0.05 },
+        { n: 'Model Transaction', u: 'inference', origC: cpu*0.3, origM: ram*0.3 },
+        { n: 'Environment Dashboard', u: 'monitor', origC: cpu*0.1, origM: ram*0.1 },
+        { n: 'PDF Document Storage', u: 'storage', origC: cpu*0.05, origM: ram*0.15 }
     ];
+    
+    // Sort by CPU usage and take top 6
+    allProcs.sort((a, b) => b.origC - a.origC);
+    allProcs = allProcs.slice(0, 6);
+    
+    window.envmProcs = allProcs.map(p => ({
+        n: p.n, u: p.u, c: p.origC.toFixed(1), m: p.origM.toFixed(1), origC: p.origC, origM: p.origM
+    }));
+    const procs = window.envmProcs;
     let ptbl = document.getElementById('envm-process-table');
     ptbl.innerHTML = procs.map((p, i) => `
         <tr>
@@ -5176,16 +5186,17 @@ window.openEnvMonitoring = function(idStr) {
         document.getElementById('envm-ram-leg').textContent = nram.toFixed(1) + '%';
         
         // Update process table slightly to simulate live activity
-        if (typeof procs !== 'undefined') {
-            procs.forEach(p => {
-                if (typeof p.origC === 'undefined') p.origC = parseFloat(p.c);
-                if (typeof p.origM === 'undefined') p.origM = parseFloat(p.m);
+        if (typeof window.envmProcs !== 'undefined') {
+            window.envmProcs.forEach(p => {
                 let newC = p.origC + (Math.random()*4 - 2);
                 let newM = p.origM + (Math.random()*2 - 1);
                 p.c = Math.min(100, Math.max(0, newC)).toFixed(1);
                 p.m = Math.min(100, Math.max(0, newM)).toFixed(1);
             });
-            document.getElementById('envm-process-table').innerHTML = procs.map(p => `
+            // Re-sort periodically based on simulated fluctuations
+            window.envmProcs.sort((a, b) => parseFloat(b.c) - parseFloat(a.c));
+            
+            document.getElementById('envm-process-table').innerHTML = window.envmProcs.map(p => `
                 <tr>
                     <td>
                         <div class="envm-proc-name">

@@ -5230,6 +5230,7 @@ window.showProcessExplanation = function() {
     window.showApiResponseModal("Informasi Top Inference Processes", `
         <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
             <p style="margin-bottom: 12px;">Tabel ini menyimulasikan daftar program (proses) yang sedang berjalan di dalam server backend:</p>
+            <p style="margin-bottom: 12px; margin-top: 12px;">Kolom <strong>API Load</strong> menunjukkan beban pemrosesan/CPU dari tugas tersebut, sedangkan bar <strong>Memory</strong> menunjukkan persentase RAM yang sedang digunakan.</p>
             <ul style="margin-top: 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
                 <li><strong>python3 jastip_scraper.py:</strong> Skrip bot pengambil data dari luar negeri.</li>
                 <li><strong>postgres customs_db:</strong> Mesin database tempat menyimpan data.</li>
@@ -8412,7 +8413,7 @@ window.showApiResponseModal = function(heading, message, isError) {
     if (!overlay) return;
     
     document.getElementById('api-response-heading').textContent = heading;
-    document.getElementById('api-response-message').textContent = message;
+    document.getElementById('api-response-message').innerHTML = message;
     
     const iconContainer = document.getElementById('api-response-icon-container');
     if (isError) {

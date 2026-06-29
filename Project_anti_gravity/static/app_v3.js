@@ -5132,21 +5132,36 @@ window.openEnvMonitoring = function(idStr) {
         </tr>
     `).join('');
 
-    // Jastip Themed Alerts
-    const alerts = [
-        { t: "Sinkronisasi resi pengiriman berhasil via API", time: "22 min ago", type: "info" },
-        { t: "API Bea Cukai timeout \u2014 mencoba menyambung ulang...", time: "1 hr ago", type: "warn" },
-        { t: "Scraper e-commerce luar negeri selesai (500 item)", time: "3 hrs ago", type: "info" }
-    ];
-    document.getElementById('envm-alerts-list').innerHTML = alerts.map(a => `
-        <div class="envm-alert-item ${a.type}">
-            <div class="envm-alert-icon">${a.type === 'info' ? 'âœ”ï¸' : 'âš ï¸'}</div>
-            <div class="envm-alert-content">
-                <p>${a.t}</p>
-                <small>${a.time}</small>
-            </div>
-        </div>
-    `).join('');
+    // Fetch Maintenance Notes dynamically for the specific file
+    document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">Loading alerts...</div>';
+    fetch('/api-content/maintenance-issues/')
+        .then(res => res.json())
+        .then(data => {
+            const fileAlerts = data.filter(iss => iss.dataset_name === entry.name);
+            if (fileAlerts.length === 0) {
+                document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
+                return;
+            }
+            document.getElementById('envm-alerts-list').innerHTML = fileAlerts.map(a => {
+                let type = (a.severity === 'high' || a.severity === 'critical') ? 'warn' : 'info';
+                let icon = (type === 'warn') ? '&#9888;' : '&#10004;';
+                let dateStr = new Date(a.detected_at).toLocaleString();
+                let title = (a.issue_type + "").replace(/_/g, ' ').toUpperCase();
+                return `
+                <div class="envm-alert-item ${type}">
+                    <div class="envm-alert-icon">${icon}</div>
+                    <div class="envm-alert-content">
+                        <p><strong>${title}</strong>: ${a.description}</p>
+                        <small>${dateStr}</small>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        })
+        .catch(err => {
+            console.error('Failed to fetch alerts:', err);
+            document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #ef4444; text-align: center;">Failed to load alerts.</div>';
+        });
 
     // Live update simulation
     envmLiveInterval = setInterval(() => {

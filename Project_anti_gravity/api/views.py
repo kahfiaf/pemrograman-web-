@@ -13,7 +13,7 @@ from .serializers import (
 
 # ─── URL endpoint kelompok Intelligence Creation ────────────────────────────
 # Ganti dengan URL asli saat sudah mendapat info dari kelompok IC:
-IC_API_URL = "http://127.0.0.1:8001/api/receive-issue/"
+IC_API_URL = "http://72.61.215.222:8000/api/maintenance-notes/"
 # ────────────────────────────────────────────────────────────────────────────
 
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -115,13 +115,6 @@ class PdfDocumentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         email = self.request.data.get('user_email', '')
         serializer.save(user_email=email)
-
-from .models import IntegrationLog
-from .serializers import IntegrationLogSerializer
-
-class IntegrationLogViewSet(viewsets.ModelViewSet):
-    queryset = IntegrationLog.objects.all()
-    serializer_class = IntegrationLogSerializer
 
     @action(detail=True, methods=['post'])
     def send_to_ic(self, request, pk=None):

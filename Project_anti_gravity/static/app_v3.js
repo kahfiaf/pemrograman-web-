@@ -349,7 +349,13 @@ const HOME_FEATURES = [
         target:  'datasource-overview-view',
         available: true
     },
-
+    {
+        key:     'add-data',
+        title:   'Add Data Source',
+        desc:    'Connect and upload new data sources to the platform',
+        target:  'add-data-view',
+        available: true
+    },
     {
         key:     'data-quality',
         title:   'Data Quality Dashboard',
@@ -485,11 +491,7 @@ function navigateTo(viewId) {
         updateNavbarSession();
     } else if (viewId === 'dashboard-view') {
         updateNavbarSession();
-        if (window.apiSyncUsers) {
-            window.apiSyncUsers().then(() => renderDashboardList());
-        } else {
-            renderDashboardList();
-        }
+        renderDashboardList();
     } else if (viewId === 'profile-view') {
         updateNavbarSession();
         updateProfileView();
@@ -570,22 +572,14 @@ window.registerUser = async function(username, email, password) {
         });
         if (!res.ok) {
             const err = await res.json();
-            if (typeof window.showCustomAlert === 'function') {
-                window.showCustomAlert("Error", err.error || "Registration failed", false);
-            } else {
-                alert(err.error || "Registration failed");
-            }
+            alert(err.error || "Registration failed");
             return false;
         }
         
         // Auto-login after register
         return await window.loginUser(email, password);
     } catch (e) {
-        if (typeof window.showCustomAlert === 'function') {
-            window.showCustomAlert("Error", "Network error: " + e.message, false);
-        } else {
-            alert("Network error: " + e.message);
-        }
+        alert("Network error: " + e.message);
         return false;
     }
 }
@@ -598,48 +592,23 @@ window.loginUser = async function(email, password) {
             body: JSON.stringify({ email, password })
         });
         if (!res.ok) {
-            if (typeof window.showCustomAlert === 'function') {
-                window.showCustomAlert("Error", "Invalid email or password!", false);
-            } else {
-                alert("Invalid email or password!");
-            }
+            alert("Invalid email or password!");
             return false;
         }
         const data = await res.json();
         
         const today = new Date();
-        
-        // Check if user is already in the platform members list
-        let existingUser = users.find(u => u.email.toLowerCase() === data.user.email.toLowerCase());
-        
-        if (!existingUser) {
-            // New user, add to the platform members list
-            existingUser = {
-                username: data.user.username,
-                email: data.user.email,
-                regDate: formatDate(today),
-                regYear: today.getFullYear(),
-                timestamp: today.getTime()
-            };
-            users.push(existingUser);
-            localStorage.setItem('insight_users_v2', JSON.stringify(users));
-        }
-
         currentUser = {
-            username: existingUser.username,
-            email: existingUser.email,
-            regDate: existingUser.regDate,
-            regYear: existingUser.regYear,
-            timestamp: existingUser.timestamp
+            username: data.user.username,
+            email: data.user.email,
+            regDate: formatDate(today),
+            regYear: today.getFullYear(),
+            timestamp: today.getTime()
         };
         localStorage.setItem('insight_session_v2', JSON.stringify(currentUser));
         return true;
     } catch (e) {
-        if (typeof window.showCustomAlert === 'function') {
-            window.showCustomAlert("Error", "Network error: " + e.message, false);
-        } else {
-            alert("Network error: " + e.message);
-        }
+        alert("Network error: " + e.message);
         return false;
     }
 }
@@ -654,11 +623,34 @@ function getInitials(name) {
 }
 
 // Dashboard Search and Rendering logic
-function renderDashboardList(searchQuery = '') {
+async function renderDashboardList(searchQuery = '') {
     const listContainer = document.getElementById('members-list');
     const totalUsersCount = document.getElementById('total-users-count');
     const users2026Count = document.getElementById('users-2026-count');
     const userFooterNotice = document.getElementById('user-footer-notice');
+    
+    try {
+        const res = await fetch((window.API_BASE || '/api') + '/users/');
+        if (res.ok) {
+            const apiUsers = await res.json();
+            const newUsers = apiUsers.map(u => {
+                const d = new Date(u.date_joined);
+                return {
+                    username: u.username,
+                    email: u.email,
+                    regDate: d.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}),
+                    regYear: d.getFullYear(),
+                    timestamp: d.getTime()
+                };
+            });
+            // Merge or overwrite users. For simplicity, if API is working, we use API users
+            if (newUsers.length > 0) {
+                users = newUsers;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to fetch users from API, falling back to local storage', e);
+    }
     
     // Sort users chronologically (oldest registration first)
     const sortedUsers = [...users].sort((a, b) => a.timestamp - b.timestamp);
@@ -1009,7 +1001,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Init Mock Data & Saved Session
     initData();
-    if (window.apiSyncUsers) window.apiSyncUsers();
     setupPasswordToggles();
     setupGlobalSearch();
 
@@ -2617,7 +2608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (entry.pdfUrl) {
-            window.open((window.API_BASE || '').replace('/api', '') + entry.pdfUrl, '_blank');
+            window.open(entry.pdfUrl, '_blank');
         } else if (entry.fileDataUrl) {
             openWith(entry.fileDataUrl);
         } else if (entry._idbKey) {
@@ -2647,8 +2638,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="dso-modal-grid">
                 ${(entry.pdfUrl || entry.fileDataUrl) ? (
                     (entry.hasImage || (entry.fileType && entry.fileType.includes('image'))) ? 
-                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
-                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? (window.API_BASE || '').replace('/api', '') + entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
+                    `<div class="dso-modal-preview"><img src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" alt="preview" style="max-width:100%; border-radius:8px;"></div>` : 
+                    `<div class="dso-modal-preview" style="height:400px; width:100%; border-radius:8px; overflow:hidden;"><iframe src="${entry.pdfUrl ? entry.pdfUrl : entry.fileDataUrl}" style="width:100%; height:100%; border:none;"></iframe></div>`
                 ) : 'Preview tidak tersedia'}
                 <div class="dso-modal-rows">
                     ${[
@@ -4030,7 +4021,7 @@ window.renderAlerts = function() {
 
     entries.forEach((entry, idx) => {
         const seed = entry.id || (idx + 1);
-        const name = entry.name || entry.sourceName || 'Dataset';
+        const name = entry.fileName || entry.title || entry.name || entry.sourceName || 'Dataset';
         
         const isPlResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('pl-' + seed);
         const isDqResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('dq-' + seed);
@@ -4078,6 +4069,35 @@ window.renderAlerts = function() {
                 ]
             });
         }
+
+        // Environment Dashboard Issues (Connected to Environment Stat)
+        const isEnvResolved = currentUser && currentUser.resolvedAlerts && currentUser.resolvedAlerts.includes('env-' + seed);
+        let getSeededRand = function(s, mn, mx) { let x = Math.sin(s * 9301 + 49297) * 233280; return mn + (x - Math.floor(x)) * (mx - mn); };
+        let envStatusVal = getSeededRand(seed, 0, 100);
+        if (!isEnvResolved && envStatusVal > 60) {
+            let cpu = Math.floor(getSeededRand(seed+2, 10, 95));
+            let ram = Math.floor(getSeededRand(seed+3, 20, 90));
+            if (envStatusVal > 85) { cpu = Math.max(cpu, 85); ram = Math.max(ram, 85); }
+            
+            const isCritical = envStatusVal > 85;
+            currentAlerts.push({
+                id: 'env-' + seed,
+                dataset: name,
+                type: 'Environment',
+                title: 'Server Resource ' + (isCritical ? 'Critical' : 'Warning'),
+                severity: isCritical ? 'CRITICAL' : 'HIGH',
+                desc: `Environment server for ${name} is in ${isCritical ? 'CRITICAL' : 'WARNING'} state with high resource usage.`,
+                timeAgo: Math.floor(seededRand(seed * 41, 1, 60)) + ' mins ago',
+                records: 'N/A',
+                note: `Check server health and running pipelines for ${name}. Investigate the active processes consuming resources.`,
+                breakdown: [
+                    `<li>Affected Service: <strong>${name} Pipeline</strong></li>`,
+                    `<li>CPU Usage: <strong><span style="color:${cpu > 85 ? '#ef4444' : '#fbbf24'}">${cpu}%</span></strong></li>`,
+                    `<li>RAM Usage: <strong><span style="color:${ram > 85 ? '#ef4444' : '#fbbf24'}">${ram}%</span></strong></li>`,
+                    `<li>Recommended Action: <a href="#" onclick="window.openEnvMonitoring('${seed}'); return false;" style="color:#60a5fa;text-decoration:underline;">Open Live Monitoring</a></li>`
+                ]
+            });
+        }
     });
     
     // Sort critical first, then high
@@ -4089,12 +4109,14 @@ window.renderAlerts = function() {
     const highCount = currentAlerts.filter(a => a.severity === 'HIGH').length;
     const dqCount = currentAlerts.filter(a => a.type === 'Data Quality').length;
     const plCount = currentAlerts.filter(a => a.type === 'Pipeline').length;
+    const envCount = currentAlerts.filter(a => a.type === 'Environment').length;
     
     const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     setEl('alerts-stat-critical', criticalCount);
     setEl('alerts-stat-high', highCount);
     setEl('alerts-stat-dq', dqCount);
     setEl('alerts-stat-pipeline', plCount);
+    setEl('alerts-stat-env', envCount);
 
     updateAlertList();
 };
@@ -4152,9 +4174,9 @@ function updateAlertList() {
                     </div>
                 </div>
                 <div class="alert-actions">
-                    <button class="alert-btn alert-btn-outline" onclick="window.viewAlertDetails('${alert.id}')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        View Details
+                    <button class="alert-btn alert-btn-outline" onclick="window.sendIssueToIC('${alert.id}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        Send Issue
                     </button>
                     <button class="alert-btn alert-btn-analyze" onclick="window.analyzeAlert('${alert.id}')">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2zM21 9v6h-2v-6h2z"/></svg>
@@ -4416,6 +4438,49 @@ window.closeAnalyzeModal = function() {
     document.getElementById('alerts-analyze-modal').classList.remove('active');
 };
 
+window.sendIssueToIC = function(id) {
+    const alert = currentAlerts.find(a => a.id === id);
+    if (!alert) return;
+
+    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" style="width: 20px; height: 20px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+
+    window.showPdfActionModal(
+        "Submit to Creation",
+        "Kirim issue ini ke Creation Grid 6.",
+        fileIcon, "Issue to be sent", alert.title || alert.id,
+        `Kirim issue "${alert.title || alert.id}" ke Creation Maintenance Note?`,
+        "Submit Issue", ['#10b981', '#059669'], '#10b981', mainIcon,
+        async function() {
+            try {
+                if(window.addNotification) window.addNotification("Sending", "Sedang mengirim...", "info");
+                
+                const payload = {
+                    text: 'Issue: ' + (alert.title || alert.id) + '\nDeskripsi: ' + alert.desc + '\nDataset: ' + (alert.dataset || '-'),
+                    priority: 'high' 
+                };
+
+                const response = await fetch('http://72.61.215.222:8000/api/maintenance-notes/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) throw new Error('Gagal dari server Creation');
+                
+                if(window.addNotification) window.addNotification("Success", "Berhasil terkirim ke Creation!", "success");
+                if(typeof window.closePdfModal === 'function') window.closePdfModal();
+                if(window.showAPIResponse) window.showAPIResponse(true, "Berhasil mengirim data ke Creation");
+                
+            } catch (err) {
+                console.error(err);
+                if(window.showAPIResponse) window.showAPIResponse(false, "Gagal mengirim: Pastikan Creation menyala di port 8000");
+                else if(window.addNotification) window.addNotification("Error", "Gagal mengirim data.", "error");
+            }
+        }
+    );
+};
+
 window.viewAlertDetails = function(id) {
     const alert = currentAlerts.find(a => a.id === id);
     if (!alert) return;
@@ -4510,42 +4575,7 @@ window.closeFixModal = function() {
 };
 
 // Django API Integration
-window.API_BASE = '/api-content';
-
-window.apiSyncUsers = async function() {
-    try {
-        const res = await fetch(window.API_BASE + '/users/');
-        if (!res.ok) throw new Error('Failed to fetch users');
-        const data = await res.json();
-        
-        if (data.users && Array.isArray(data.users)) {
-            const backendUsers = data.users;
-            const localSeeded = (typeof SEEDED_MEMBERS !== 'undefined' ? SEEDED_MEMBERS : []).map((m) => ({
-                username: m.name,
-                email: m.email,
-                regDate: m.date,
-                regYear: m.year,
-                timestamp: m.timestamp
-            }));
-            
-            const allUsers = [...localSeeded, ...backendUsers];
-            const uniqueUsers = [];
-            const seenEmails = new Set();
-            for (let u of allUsers) {
-                const eml = u.email.toLowerCase();
-                if (!seenEmails.has(eml)) {
-                    seenEmails.add(eml);
-                    uniqueUsers.push(u);
-                }
-            }
-            users = uniqueUsers;
-            localStorage.setItem('insight_users_v2', JSON.stringify(users));
-        }
-    } catch(e) {
-        console.warn("Could not sync users from backend", e);
-    }
-};
-
+window.API_BASE = '/implementation/api-content';
 window.apiSyncEntries = async function() {
     try {
         const emailParam = (currentUser && currentUser.email) ? ('?email=' + encodeURIComponent(currentUser.email)) : '';
@@ -4948,6 +4978,10 @@ window.openEnvMonitoring = function(idStr) {
     let ram = Math.floor(getSeededRand(seed+3, 20, 90));
     let disk = Math.floor(getSeededRand(seed+4, 15, 88));
 
+    if (status === 'Critical') { cpu = Math.max(cpu, 85); ram = Math.max(ram, 85); }
+    else if (status === 'Healthy') { cpu = Math.min(cpu, 65); ram = Math.min(ram, 70); }
+    console.log("FIX APPLIED: CPU clamped to", cpu, "RAM clamped to", ram, "for status", status);
+
     // Update Top Cards
     document.getElementById('envm-cpu-val').textContent = cpu.toFixed(1);
     document.getElementById('envm-cpu-bar').style.width = cpu + '%';
@@ -5059,15 +5093,25 @@ window.openEnvMonitoring = function(idStr) {
         }
     });
 
-    // Jastip Themed Processes
-    const procs = [
-        { n: 'python3 jastip_scraper.py', u: 'app', c: (cpu*0.4).toFixed(1), m: (ram*0.3).toFixed(1) },
-        { n: 'postgres: customs_db', u: 'postgres', c: (cpu*0.2).toFixed(1), m: (ram*0.25).toFixed(1) },
-        { n: 'node customs-api.js', u: 'app', c: (cpu*0.15).toFixed(1), m: (ram*0.15).toFixed(1) },
-        { n: 'nginx: worker process', u: 'www-data', c: '5.2', m: '4.0' },
-        { n: 'celery: shipping_webhook', u: 'app', c: '3.5', m: '6.8' },
-        { n: 'redis-server', u: 'redis', c: '2.8', m: '5.2' }
+    // Features as Processes (select top 6)
+    let allProcs = [
+        { n: 'Data Source Overview', u: 'system', origC: cpu*0.15, origM: ram*0.15 },
+        { n: 'Data Quality Dashboard', u: 'analytics', origC: cpu*0.2, origM: ram*0.25 },
+        { n: 'Pipeline Monitoring', u: 'pipeline', origC: cpu*0.25, origM: ram*0.2 },
+        { n: 'Maintenance Note', u: 'alerts', origC: cpu*0.05, origM: ram*0.05 },
+        { n: 'Model Transaction', u: 'inference', origC: cpu*0.3, origM: ram*0.3 },
+        { n: 'Environment Dashboard', u: 'monitor', origC: cpu*0.1, origM: ram*0.1 },
+        { n: 'PDF Document Storage', u: 'storage', origC: cpu*0.05, origM: ram*0.15 }
     ];
+    
+    // Sort by CPU usage and take top 6
+    allProcs.sort((a, b) => b.origC - a.origC);
+    allProcs = allProcs.slice(0, 6);
+    
+    window.envmProcs = allProcs.map(p => ({
+        n: p.n, u: p.u, c: p.origC.toFixed(1), m: p.origM.toFixed(1), origC: p.origC, origM: p.origM
+    }));
+    const procs = window.envmProcs;
     let ptbl = document.getElementById('envm-process-table');
     ptbl.innerHTML = procs.map((p, i) => `
         <tr>
@@ -5098,26 +5142,78 @@ window.openEnvMonitoring = function(idStr) {
         </tr>
     `).join('');
 
-    // Jastip Themed Alerts
-    const alerts = [
-        { t: "Sinkronisasi resi pengiriman berhasil via API", time: "22 min ago", type: "info" },
-        { t: "API Bea Cukai timeout \u2014 mencoba menyambung ulang...", time: "1 hr ago", type: "warn" },
-        { t: "Scraper e-commerce luar negeri selesai (500 item)", time: "3 hrs ago", type: "info" }
-    ];
-    document.getElementById('envm-alerts-list').innerHTML = alerts.map(a => `
-        <div class="envm-alert-item ${a.type}">
-            <div class="envm-alert-icon">${a.type === 'info' ? 'âœ”ï¸' : 'âš ï¸'}</div>
-            <div class="envm-alert-content">
-                <p>${a.t}</p>
-                <small>${a.time}</small>
-            </div>
-        </div>
-    `).join('');
+    // Use the generated Maintenance Notes from currentAlerts
+    if (typeof currentAlerts !== 'undefined') {
+        const expectedName = entry.fileName || entry.title || entry.name || entry.sourceName || 'Dataset';
+        const fileAlerts = currentAlerts.filter(a => a.dataset === expectedName);
+        if (fileAlerts.length === 0) {
+            document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
+        } else {
+            document.getElementById('envm-alerts-list').innerHTML = fileAlerts.map(a => {
+                let type = (a.severity.toLowerCase() === 'high' || a.severity.toLowerCase() === 'critical') ? 'warn' : 'info';
+                let icon = (type === 'warn') ? '&#9888;' : '&#10004;';
+                return `
+                <div class="envm-alert-item ${type}">
+                    <div class="envm-alert-icon">${icon}</div>
+                    <div class="envm-alert-content">
+                        <p><strong>${a.title}</strong>: ${a.desc}</p>
+                        <small>${a.timeAgo}</small>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+    } else {
+        document.getElementById('envm-alerts-list').innerHTML = '<div style="padding: 10px; color: #94a3b8; text-align: center;">No active alerts for this file.</div>';
+    }
 
     // Live update simulation
     envmLiveInterval = setInterval(() => {
         let ncpu = Math.min(100, Math.max(0, cpu + (Math.random()*10 - 5)));
         let nram = Math.min(100, Math.max(0, ram + (Math.random()*4 - 2)));
+        
+        // Update process table slightly to simulate live activity
+        if (typeof window.envmProcs !== 'undefined') {
+            let sumC = 0, sumM = 0;
+            window.envmProcs.forEach(p => {
+                let newC = p.origC + (Math.random()*4 - 2);
+                let newM = p.origM + (Math.random()*2 - 1);
+                p.c = Math.min(100, Math.max(0, newC)).toFixed(1);
+                p.m = Math.min(100, Math.max(0, newM)).toFixed(1);
+                sumC += parseFloat(p.c);
+                sumM += parseFloat(p.m);
+            });
+            
+            // Re-sort periodically based on simulated fluctuations
+            window.envmProcs.sort((a, b) => parseFloat(b.c) - parseFloat(a.c));
+            
+            // Synchronize the total CPU and RAM to exactly match the sum of these processes
+            ncpu = Math.min(100, sumC);
+            nram = Math.min(100, sumM);
+            
+            // Update Top Level Gauges dynamically
+            let cpuValEl = document.getElementById('envm-cpu-val');
+            if (cpuValEl) cpuValEl.textContent = ncpu.toFixed(1);
+            let cpuBarEl = document.getElementById('envm-cpu-bar');
+            if (cpuBarEl) cpuBarEl.style.width = ncpu + '%';
+            let cpuLblEl = document.getElementById('envm-cpu-lbl');
+            if (cpuLblEl) cpuLblEl.textContent = ncpu.toFixed(1) + '% used';
+            if (envmCharts.cpu) {
+                envmCharts.cpu.data.datasets[0].data = [ncpu, 100-ncpu];
+                envmCharts.cpu.update();
+            }
+
+            let ramValEl = document.getElementById('envm-ram-val');
+            if (ramValEl) ramValEl.textContent = nram.toFixed(1);
+            let ramBarEl = document.getElementById('envm-ram-bar');
+            if (ramBarEl) ramBarEl.style.width = nram + '%';
+            let ramLblEl = document.getElementById('envm-ram-lbl');
+            if (ramLblEl) ramLblEl.textContent = (nram * 0.32).toFixed(1) + ' GB used';
+            if (envmCharts.ram) {
+                envmCharts.ram.data.datasets[0].data = [nram, 100-nram];
+                envmCharts.ram.update();
+            }
+        }
         
         envmCharts.resource.data.datasets[0].data.shift();
         envmCharts.resource.data.datasets[0].data.push(ncpu);
@@ -5132,9 +5228,49 @@ window.openEnvMonitoring = function(idStr) {
         document.getElementById('envm-cpu-leg').textContent = ncpu.toFixed(1) + '%';
         document.getElementById('envm-ram-leg').textContent = nram.toFixed(1) + '%';
         
+        if (typeof window.envmProcs !== 'undefined') {
+            document.getElementById('envm-process-table').innerHTML = window.envmProcs.slice(0, 6).map(p => `
+                <tr>
+                    <td>
+                        <div class="envm-proc-name">
+                            <div class="envm-proc-icon">&#9881;</div>
+                            ${p.n}
+                        </div>
+                    </td>
+                    <td>${Math.floor(Math.random()*20000 + 1000)}</td>
+                    <td>${p.u}</td>
+                    <td>
+                        <div class="envm-table-bar">
+                            <div class="envm-tb-bg"><div class="envm-tb-fill bg-blue-500" style="width: ${p.c}%; background: #3b82f6;"></div></div>
+                            ${p.c}%
+                        </div>
+                    </td>
+                    <td><div class="envm-table-bar">
+                            <div class="envm-tb-bg"><div class="envm-tb-fill bg-purple-500" style="width: ${p.m}%; background: #a855f7;"></div></div>
+                            ${p.m}%
+                        </div>
+                    </td>
+                    <td>
+                        <div class="envm-status-cell">
+                            <span class="dot healthy"></span> running
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
         // Update clock
         document.getElementById('envm-clock').textContent = new Date().toLocaleTimeString();
     }, 2500);
+};
+
+window.showProcessExplanation = function() {
+    window.showApiResponseModal("Informasi Top Inference Processes", `
+        <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+            <p style="margin-bottom: 12px;">Tabel ini menyimulasikan daftar program (proses) yang sedang berjalan di dalam server backend:</p>
+            <p style="margin-bottom: 12px; margin-top: 12px;">Kolom <strong>API Load</strong> menunjukkan beban pemrosesan/CPU dari tugas tersebut, sedangkan bar <strong>Memory</strong> menunjukkan persentase RAM yang sedang digunakan.</p>
+        </div>
+    `, false);
 };
 
 // Add event listener for the back button
@@ -5571,7 +5707,7 @@ window.mnSendToIC = async function(idx) {
 
     try {
         // Step 1: Simpan issue ke backend kita
-        const createResp = await fetch('/api-content/maintenance-issues/', {
+        const createResp = await fetch(window.API_BASE + '/maintenance-issues/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _getCSRF() },
             body: JSON.stringify({
@@ -6055,9 +6191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function getDataUrlFromEntry(ent) {
     if (ent.pdfUrl) {
         try {
-            let base = window.API_BASE || '';
-            base = base.replace(/\/api(-content)?\/?$/, '');
-            const url = base + ent.pdfUrl;
+            const url = ent.pdfUrl;
             const res = await fetch(url);
             const blob = await res.blob();
             return await new Promise((resolve) => {
@@ -6180,11 +6314,7 @@ async function tryParsePdfEntry(ent) {
                             }
                         }
                     }
-                    
-                    if (field.toLowerCase() === 'total harga') {
-                        finalFunctions[field] = '-';
-                        foundAny = true;
-                    } else if (bestVal && !requestedFields.some(f => f.toLowerCase() === bestVal.toLowerCase())) {
+                    if (bestVal && bestVal.length < 100) {
                         finalFunctions[field] = bestVal;
                         foundAny = true;
                     }
@@ -6192,57 +6322,64 @@ async function tryParsePdfEntry(ent) {
             }
         };
 
-        let rawItems = [];
-        
         try {
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc || !pdfjsLib.GlobalWorkerOptions.workerSrc.startsWith('blob:')) {
-            try {
-                const workerRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');
-                const workerBlob = await workerRes.blob();
-                pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
-            } catch (workerErr) {
-                console.warn("Failed to load worker via blob, falling back to CDN directly", workerErr);
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            if (typeof pdfjsLib === 'undefined') {
+                finalFunctions['Error'] = 'PDF.js library belum dimuat.';
+                return resolve(finalFunctions);
             }
-        }
-        const base64 = dataUrl.split(',')[1];
-        const binary = atob(base64);
-        const buffer = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
-
-        const loadingTask = pdfjsLib.getDocument({
-            data: buffer,
-            cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-            cMapPacked: true,
-            standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/'
-        });
+            
+            const loadingTask = pdfjsLib.getDocument(dataUrl);
             const pdfDoc = await loadingTask.promise;
-
-            for (let p = 1; p <= pdfDoc.numPages; p++) {
-                const page = await pdfDoc.getPage(p);
+            const numPages = pdfDoc.numPages;
+            
+            let rawItems = [];
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
                 const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                rawItems.push(pageText);
                 
-                if (textContent.items && textContent.items.length > 0) {
-                    const rows = {};
-                    textContent.items.forEach(item => {
-                        const str = item.str.trim();
-                        if (!str) return;
-                        const y = item.transform[5];
-                        const x = item.transform[4];
-                        const roundedY = Math.round(y / 5) * 5;
-                        if (!rows[roundedY]) rows[roundedY] = [];
-                        rows[roundedY].push({ str: str, x: x });
-                    });
+                if (typeof Tesseract !== 'undefined' && pageText.trim().length < 50) {
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
                     
-                    const sortedY = Object.keys(rows).map(Number).sort((a, b) => b - a);
-                    sortedY.forEach(y => {
-                        const rowItems = rows[y].sort((a, b) => a.x - b.x);
-                        const lineText = rowItems.map(ri => ri.str).join(' ').trim();
-                        if (lineText) rawItems.push(lineText);
-                    });
+                    const imgDataUrl = canvas.toDataURL('image/png');
+                    const worker = await Tesseract.createWorker('ind');
+                    const ret = await worker.recognize(imgDataUrl);
+                    
+                    let ocrWords = [];
+                    if (ret.data && ret.data.words) {
+                        const rows = {};
+                        ret.data.words.forEach(w => {
+                            const str = w.text.trim();
+                            if (!str) return;
+                            const y = w.bbox.y0;
+                            const x = w.bbox.x0;
+                            const roundedY = Math.round(y / 10) * 10;
+                            if (!rows[roundedY]) rows[roundedY] = [];
+                            rows[roundedY].push({ str: str, x: x });
+                        });
+                        
+                        const sortedY = Object.keys(rows).map(Number).sort((a, b) => a - b);
+                        sortedY.forEach(y => {
+                            const rowItems = rows[y].sort((a, b) => a.x - b.x);
+                            const lineText = rowItems.map(ri => ri.str).join(' ');
+                            ocrWords.push(lineText);
+                        });
+                    }
+                    await worker.terminate();
+
+                    if (ocrWords.length > 0) {
+                        parseItemsArray(ocrWords);
+                    }
                 }
             }
-
+            
             if (rawItems.length > 0) {
                 parseItemsArray(rawItems);
             }
@@ -6265,9 +6402,9 @@ async function tryParsePdfEntry(ent) {
                     canvas.width = viewport.width;
 
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    const imgData = canvas.toDataURL('image/png');
-
-                    const ret = await worker.recognize(imgData);
+                    
+                    const imgDataUrl = canvas.toDataURL('image/png');
+                    const ret = await worker.recognize(imgDataUrl);
                     
                     if (ret.data && ret.data.words) {
                         const rows = {};
@@ -6289,7 +6426,6 @@ async function tryParsePdfEntry(ent) {
                         });
                     }
                 }
-                
                 await worker.terminate();
 
                 if (ocrWords.length > 0) {
@@ -6369,6 +6505,7 @@ async function tryParseImageEntry(ent) {
                     searchIdx += fullTextAll.toUpperCase().substring(searchIdx).startsWith('FUNCTIONS') ? 23 : 11;
                 }
                 const fullText = searchIdx !== -1 ? fullTextAll.substring(searchIdx) : fullTextAll;
+                
                 for (const field of requestedFields) {
                     let fieldRegexPattern = field.replace(/\s+/g, '\\s*');
                     let splitParts = fullText.split(new RegExp(fieldRegexPattern, 'i'));
@@ -6437,11 +6574,7 @@ async function tryParseImageEntry(ent) {
                                 }
                             }
                         }
-                        
-                        if (field.toLowerCase() === 'total harga') {
-                            finalFunctions[field] = '-';
-                            foundAny = true;
-                        } else if (bestVal && !requestedFields.some(f => f.toLowerCase() === bestVal.toLowerCase())) {
+                        if (bestVal && bestVal.length < 100) {
                             finalFunctions[field] = bestVal;
                             foundAny = true;
                         }
@@ -7905,8 +8038,8 @@ window.showSaveSuccessModal = function(filename) {
                     </div>
                 </div>
                 
-                <button onclick="document.getElementById('save-success-modal-overlay').style.display='none'" style="width: 100%; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    Awesome!
+                <button onclick="document.getElementById('save-success-modal-overlay').style.display='none'; if(typeof navigateTo === 'function') { navigateTo('pdf-storage-view'); if(typeof window.renderPdfStorageCards === 'function') window.renderPdfStorageCards(); }" style="width: 100%; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    Awesome! Lihat di Document Storage
                 </button>
             </div>
         </div>
@@ -8106,7 +8239,7 @@ window.renderPdfStorageCards = async function() {
                     </span>
                 </div>
                 <div class="pdf-card-actions">
-                    <button class="pdf-btn pdf-btn-sent" onclick="sendPdfToIC('${pdf.title}', ${pdf.id})" title="Send to IC Team">
+                    <button class="pdf-btn pdf-btn-sent" onclick="submitToIntRing('${pdf.title}', ${pdf.id})" title="Submit to IntRing PM">
                         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
                     <button class="pdf-btn pdf-btn-download" onclick="downloadPdfStorage('${pdf.title}', ${pdf.id})" title="Download">
@@ -8241,9 +8374,30 @@ window.showPdfActionModal = function(title, subtitle, iconHtml, targetTitle, tar
             </div>
         </div>
     `;
-    document.getElementById('custom-action-btn-yes').onclick = function() {
-        document.getElementById('custom-action-modal-overlay').style.display = 'none';
-        if (onConfirm) onConfirm();
+    document.getElementById('custom-action-btn-yes').onclick = async function() {
+        const modalContent = overlay.children[0];
+        modalContent.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem; min-height: 250px;">
+                <div class="alerts-loading-spinner" style="border-top-color: ${iconColor}; margin: 0 auto 1.5rem auto; width: 48px; height: 48px; border-width: 4px;"></div>
+                <h4 style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;">Sedang Memproses...</h4>
+                <p style="color: #94a3b8; line-height: 1.5;">Mohon tunggu sebentar.</p>
+            </div>
+        `;
+        
+        try {
+            if (onConfirm) {
+                const isPromise = onConfirm.constructor.name === 'AsyncFunction' || (typeof onConfirm === 'function' && onConfirm.toString().includes('async'));
+                if (isPromise) {
+                    await onConfirm();
+                } else {
+                    const result = onConfirm();
+                    if (result instanceof Promise) await result;
+                }
+            }
+        } finally {
+            const el = document.getElementById('custom-action-modal-overlay');
+            if (el) el.style.display = 'none';
+        }
     };
     overlay.style.display = 'flex';
 };
@@ -8299,29 +8453,168 @@ window.downloadPdfStorage = function(filename, id) {
     );
 };
 
-window.sendPdfToIC = function(filename, id) {
-    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width: 20px; height: 20px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-    window.showPdfActionModal(
-        "Send to Intelligence Creation",
-        "Transmit this document to the IC team via API.",
-        fileIcon, "File to be sent", filename,
-        `Are you sure you want to send "${filename}"? The IC team will receive this immediately.`,
-        "Send File", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function() {
-            // Simulated API upload with the actual Blob
-            try {
-                const blob = await window.getPdfBlobFromDB(id);
-                // Simulate network delay
-                setTimeout(() => {
-                    alert(`File '${filename}' (${(blob.size/1024/1024).toFixed(1)}MB) was successfully sent to the IC team via API!`);
-                    if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to Intelligence Creation via API.", "success");
-                }, 800);
-            } catch (e) {
-                alert("Failed to send: " + e.message);
-            }
+window.showApiResponseModal = function(heading, message, isError) {
+    const overlay = document.getElementById('api-response-modal-overlay');
+    if (!overlay) return;
+    
+    document.getElementById('api-response-heading').textContent = heading;
+    document.getElementById('api-response-message').innerHTML = message;
+    
+    const iconContainer = document.getElementById('api-response-icon-container');
+    if (isError) {
+        document.getElementById('api-response-heading').style.color = '#ef4444';
+        iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    } else {
+        document.getElementById('api-response-heading').style.color = '#34d399';
+        iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 10 0 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    }
+    
+    overlay.style.display = 'flex';
+};
+
+window.submitToIntRing = async function(filename, id) {
+    let loadingOverlay = null;
+    try {
+        let projectId = await new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            Object.assign(overlay.style, {
+                position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: '99999', backdropFilter: 'blur(3px)'
+            });
+
+            const modal = document.createElement('div');
+            Object.assign(modal.style, {
+                backgroundColor: '#1E1E2D', padding: '24px', borderRadius: '12px',
+                width: '400px', maxWidth: '90%', boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: 'Inter, sans-serif'
+            });
+
+            const title = document.createElement('h3');
+            title.innerText = 'Kirim ke IntRing PM';
+            title.style.margin = '0 0 10px 0';
+            title.style.fontSize = '18px';
+
+            const desc = document.createElement('p');
+            desc.innerText = `Masukkan ID Proyek tujuan:`;
+            desc.style.margin = '0 0 20px 0';
+            desc.style.color = '#A0A0B5';
+            desc.style.fontSize = '14px';
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = '1';
+            Object.assign(input.style, {
+                width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3F3F5A',
+                backgroundColor: '#151521', color: '#fff', marginBottom: '20px', boxSizing: 'border-box',
+                fontSize: '15px'
+            });
+
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.justifyContent = 'flex-end';
+            btnContainer.style.gap = '12px';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerText = 'Batal';
+            Object.assign(cancelBtn.style, {
+                padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent',
+                color: '#A0A0B5', cursor: 'pointer', fontWeight: '500', transition: '0.2s'
+            });
+            cancelBtn.onmouseover = () => cancelBtn.style.color = '#fff';
+            cancelBtn.onmouseout = () => cancelBtn.style.color = '#A0A0B5';
+
+            const submitBtn = document.createElement('button');
+            submitBtn.innerText = 'Kirim';
+            Object.assign(submitBtn.style, {
+                padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#3699FF',
+                color: '#fff', cursor: 'pointer', fontWeight: '600', transition: '0.2s'
+            });
+            submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#187DE4';
+            submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#3699FF';
+
+            btnContainer.append(cancelBtn, submitBtn);
+            modal.append(title, desc, input, btnContainer);
+            overlay.append(modal);
+            document.body.append(overlay);
+
+            setTimeout(() => input.focus(), 100);
+
+            const close = (val) => {
+                if (val === null) document.body.removeChild(overlay);
+                resolve({ val, overlay, modal });
+            };
+
+            cancelBtn.onclick = () => close(null);
+            submitBtn.onclick = () => close(input.value);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') close(input.value);
+                if (e.key === 'Escape') close(null);
+            };
+        });
+
+        if (!projectId.val) return;
+        loadingOverlay = projectId.overlay;
+
+        projectId.modal.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem; min-height: 250px;">
+                <div class="alerts-loading-spinner" style="border-top-color: #38bdf8; margin: 0 auto 1.5rem auto; width: 48px; height: 48px; border-width: 4px; border-radius: 50%; border-style: solid; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; animation: spin 1s linear infinite;"></div>
+                <h4 style="color: #f8fafc; font-size: 1.25rem; margin-bottom: 0.5rem;">Sedang Memproses...</h4>
+                <p style="color: #94a3b8; line-height: 1.5;">Mengirim file '${filename}' ke IntRing PM.</p>
+            </div>
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        `;
+
+        if(window.addNotification) window.addNotification("Uploading", "Sedang mengirim ke IntRing PM...", "info");
+
+        const blob = await window.getPdfBlobFromDB(id);
+        let formData = new FormData();
+        formData.append("project_id", parseInt(projectId.val, 10)); 
+        formData.append("phase", "Implementation");
+        formData.append("file", blob, filename);
+
+        const response = await fetch("http://72.61.215.222/intelligence-engineering/api/external-submission/?token=INTRING_SECRET_123", {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errObj = await response.json().catch(()=>({}));
+            throw new Error(errObj.error || `HTTP ${response.status}`);
         }
-    );
+        
+        const data = await response.json();
+        
+        fetch((window.API_BASE || '/api-content') + '/integration-logs/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action_type: 'Submit to IntRing PM',
+                target_system: 'IntRing PM API',
+                status: 'Success',
+                details: `File: ${filename}, Project ID: ${projectId.val}, Response ID: ${data.submission_id}`
+            })
+        }).catch(e => console.error("Log error", e));
+
+        if (loadingOverlay) document.body.removeChild(loadingOverlay);
+        window.showApiResponseModal("Berhasil Terkirim", `File '${filename}' berhasil dikirim ke IntRing PM! (ID: ${data.submission_id})`, false);
+        if(window.addNotification) window.addNotification("API Transfer", "Data successfully sent to IntRing PM.", "success");
+    } catch (e) {
+        fetch((window.API_BASE || '/api-content') + '/integration-logs/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action_type: 'Submit to IntRing PM',
+                target_system: 'IntRing PM API',
+                status: 'Failed',
+                details: `File: ${filename}, Project ID: ${projectId?.val || 'N/A'}, Error: ${e.message}`
+            })
+        }).catch(err => console.error("Log error", err));
+
+        if (loadingOverlay && loadingOverlay.parentNode) loadingOverlay.parentNode.removeChild(loadingOverlay);
+        window.showApiResponseModal("Gagal Mengirim", "Failed to submit: " + e.message, true);
+        if(window.addNotification) window.addNotification("Error", "Gagal mengirim ke IntRing PM: " + e.message, "error");
+    }
 };
 
 window.togglePasswordVisibility = function(id) {
@@ -8343,49 +8636,4 @@ window.togglePasswordVisibility = function(id) {
             }
         }
     }
-};
-
-
-// --- OVERRIDE SEND ISSUE TO CREATION API ---
-window.sendIssueToIC = function(id) {
-    const alert = currentAlerts.find(a => a.id === id);
-    if (!alert) return;
-
-    const fileIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" style="width: 20px; height: 20px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-    const mainIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-
-    window.showPdfActionModal(
-        "Submit to Creation",
-        "Kirim issue ini ke Creation Grid 6.",
-        fileIcon, "Issue to be sent", alert.title || alert.id,
-        `Kirim issue "${alert.title || alert.id}" ke Creation Maintenance Note?`,
-        "Submit Issue", ['#10b981', '#059669'], '#10b981', mainIcon,
-        async function() {
-            try {
-                if(window.addNotification) window.addNotification("Sending", "Sedang mengirim...", "info");
-                
-                const payload = {
-                    text: 'Issue: ' + (alert.title || alert.id) + '\nDeskripsi: ' + alert.desc + '\nDataset: ' + (alert.dataset || '-'),
-                    priority: 'high' 
-                };
-
-                const response = await fetch('http://72.61.215.222:8000/api/maintenance-notes/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) throw new Error('Gagal dari server Creation');
-                
-                if(window.addNotification) window.addNotification("Success", "Berhasil terkirim ke Creation!", "success");
-                if(typeof window.closePdfModal === 'function') window.closePdfModal();
-                if(window.showAPIResponse) window.showAPIResponse(true, "Berhasil mengirim data ke Creation");
-                
-            } catch (err) {
-                console.error(err);
-                if(window.showAPIResponse) window.showAPIResponse(false, "Gagal mengirim: Pastikan Creation menyala di port 8000");
-                else if(window.addNotification) window.addNotification("Error", "Gagal mengirim data.", "error");
-            }
-        }
-    );
 };

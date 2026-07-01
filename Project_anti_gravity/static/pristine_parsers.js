@@ -11,7 +11,15 @@
             let foundAny = false;
 
             const parseItemsArray = (arr) => {
-                const fullText = arr.join(' ');
+                const fullTextAll = arr.join(' ');
+                let searchIdx = fullTextAll.toUpperCase().indexOf('FUNCTIONS / NAMA FUNGSI');
+                if (searchIdx === -1) {
+                    searchIdx = fullTextAll.toUpperCase().indexOf('NAMA FUNGSI');
+                }
+                if (searchIdx !== -1) {
+                    searchIdx += fullTextAll.toUpperCase().substring(searchIdx).startsWith('FUNCTIONS') ? 23 : 11;
+                }
+                const fullText = searchIdx !== -1 ? fullTextAll.substring(searchIdx) : fullTextAll;
                 
                 for (const field of requestedFields) {
                     let fieldRegexPattern = field.replace(/\s+/g, '\\s*');
@@ -213,7 +221,15 @@
                 await worker.terminate();
 
                 const parseItemsArray = (arr) => {
-                    const fullText = arr.join(' ');
+                    const fullTextAll = arr.join(' ');
+                    let searchIdx = fullTextAll.toUpperCase().indexOf('FUNCTIONS / NAMA FUNGSI');
+                    if (searchIdx === -1) {
+                        searchIdx = fullTextAll.toUpperCase().indexOf('NAMA FUNGSI');
+                    }
+                    if (searchIdx !== -1) {
+                        searchIdx += fullTextAll.toUpperCase().substring(searchIdx).startsWith('FUNCTIONS') ? 23 : 11;
+                    }
+                    const fullText = searchIdx !== -1 ? fullTextAll.substring(searchIdx) : fullTextAll;
                     for (const field of requestedFields) {
                         let fieldRegexPattern = field.replace(/\s+/g, '\\s*');
                         let splitParts = fullText.split(new RegExp(fieldRegexPattern, 'i'));
